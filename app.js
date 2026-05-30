@@ -11,7 +11,7 @@ const JSONBIN_CONFIG = {
   // Ton API Key (Master Key) de jsonbin.io
   API_KEY: '$2a$10$F1db60DDgpDtxyVMJJlPg.twFuf0nscnFDLXJtunPSitrBZAJoq9y',
   // L'ID de ton Bin (fichier JSON cloud)
-  BIN_ID: 'VOTRE_BIN_ID_ICI',
+  BIN_ID: 'TON_BIN_ID_ICI',
   // URL de base de l'API
   BASE_URL: 'https://api.jsonbin.io/v3/b'
 };
