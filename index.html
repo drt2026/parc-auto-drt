@@ -1,130 +1,107 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parc Auto DRT Sfax</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <!-- PAGE D'ACCUEIL -->
-  <div id="home-page" class="home-page">
-    <div class="home-card">
-      <div class="logo-section">
-        <div class="logo-circle">
-          <span>🚗</span>
-        </div>
-        <h1>Parc Auto DRT</h1>
-        <p class="subtitle">Direction Régionale de Transport — Sfax</p>
-      </div>
-
-      <div class="role-buttons">
-        <button class="role-btn admin-btn" onclick="showLogin('admin')">
-          <span class="role-icon">🔐</span>
-          <span class="role-title">Espace Administrateur</span>
-          <span class="role-desc">Gestion complète du parc</span>
-        </button>
-
-        <button class="role-btn user-btn" onclick="showLogin('user')">
-          <span class="role-icon">👤</span>
-          <span class="role-title">Espace Utilisateur</span>
-          <span class="role-desc">Consulter mon véhicule</span>
-        </button>
-      </div>
-
-      <div class="home-footer">
-        <p>© 2026 DRT Sfax — Tous droits réservés</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- LOGIN ADMIN -->
-  <div id="login-admin" class="login-page" style="display:none;">
-    <div class="login-card">
-      <button class="back-btn" onclick="goHome()">← Retour</button>
-
-      <div class="logo-section" style="margin-bottom: 24px;">
-        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;">
-          <span>🔐</span>
-        </div>
-        <h2>Administration</h2>
-        <p class="subtitle">Accès réservé aux administrateurs</p>
-      </div>
-
-      <form id="admin-login-form">
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" id="admin-email" required placeholder="admin@drt.tn">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Mot de passe</label>
-          <input type="password" class="form-control" id="admin-password" required placeholder="••••••">
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;margin-top:8px;">
-          <span>🔐</span> Connexion
-        </button>
-      </form>
-
-      <div class="demo-info">
-        <strong>Compte démo :</strong><br>
-        Email: admin@drt.tn<br>
-        Mot de passe: admin123
-      </div>
-    </div>
-  </div>
-
-  <!-- LOGIN UTILISATEUR (Matricule seul) -->
-  <div id="login-user" class="login-page" style="display:none;">
-    <div class="login-card">
-      <button class="back-btn" onclick="goHome()">← Retour</button>
-
-      <div class="logo-section" style="margin-bottom: 24px;">
-        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;">
-          <span>👤</span>
-        </div>
-        <h2>Consulter mon véhicule</h2>
-        <p class="subtitle">Entrez votre matricule pour accéder</p>
-      </div>
-
-      <form id="user-login-form">
-        <div class="form-group">
-          <label class="form-label">Matricule du véhicule</label>
-          <input type="text" class="form-control" id="user-matricule" required placeholder="Ex: 123 TU 4567" style="text-transform:uppercase;">
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;margin-top:8px;">
-          <span>🔍</span> Rechercher mon véhicule
-        </button>
-      </form>
-
-      <div class="demo-info">
-        <strong>Matricules de démo :</strong><br>
-        123 TU 4567, 456 TU 7890, 789 TU 1234<br>
-        321 TU 5678, 654 TU 9012
-      </div>
-    </div>
-  </div>
-
-  <!-- INTERFACE UTILISATEUR -->
-  <div id="user-interface" style="display:none;">
-    <div class="user-header-bar">
-      <div class="user-header-left">
-        <div class="logo-mini">🚗</div>
-        <div>
-          <h3>Parc Auto DRT</h3>
-          <span class="sync-mini">🔄 Synchronisé</span>
-        </div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="logout()">🚪 Déconnexion</button>
-    </div>
-
-    <div class="user-container">
-      <div id="user-vehicle-detail"></div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#005293">
+    <meta name="description" content="Gestion du parc automobile - Direction Régionale Tunisie Telecom Sfax">
+    <title>Parc Auto - Direction Régionale Tunisie Telecom Sfax</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="logo-192.png">
+    <link rel="apple-touch-icon" href="logo-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --tt-blue: #005293; --tt-blue-light: #0078c8; --tt-blue-dark: #003d6b;
+            --tt-gold: #ffd700; --tt-white: #ffffff; --tt-gray: #f5f5f5;
+            --tt-dark: #1a1a2e; --shadow: 0 4px 20px rgba(0,0,0,0.1);
+            --shadow-hover: 0 8px 30px rgba(0,0,0,0.15);
+            --shadow-strong: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, var(--tt-gray) 0%, #e8ecf1 100%); min-height: 100vh; color: var(--tt-dark); }
+        .login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, var(--tt-blue) 0%, var(--tt-blue-dark) 100%); padding: 20px; }
+        .login-container { background: white; border-radius: 24px; padding: 50px 40px; width: 100%; max-width: 480px; box-shadow: var(--shadow-strong); text-align: center; }
+        .login-logo { width: 100px; height: 100px; margin: 0 auto 25px; border-radius: 50%; overflow: hidden; box-shadow: 0 6px 20px rgba(0,82,147,0.3); background: var(--tt-blue); display: flex; align-items: center; justify-content: center; }
+        .login-logo img { width: 70%; height: 70%; object-fit: contain; filter: brightness(0) invert(1); }
+        .login-container h1 { color: var(--tt-blue); font-size: 1.6rem; margin-bottom: 8px; }
+        .login-container .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 35px; }
+        .role-selector { display: flex; gap: 12px; margin-bottom: 30px; }
+        .role-btn { flex: 1; padding: 16px 20px; border: 2px solid #e0e0e0; border-radius: 14px; background: white; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+        .role-btn:hover { border-color: var(--tt-blue-light); transform: translateY(-2px); }
+        .role-btn.active { border-color: var(--tt-blue); background: linear-gradient(135deg, #e8f4fd 0%, #d6ebfa 100%); box-shadow: 0 4px 15px rgba(0,82,147,0.15); }
+        .role-btn .icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+        .role-btn .label { font-weight: 600; color: var(--tt-dark); font-size: 0.95rem; }
+        .role-btn .desc { font-size: 0.8rem; color: #888; margin-top: 4px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--tt-dark); font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; outline: none; }
+        .form-group input:focus { border-color: var(--tt-blue); box-shadow: 0 0 0 4px rgba(0,82,147,0.1); }
+        .btn-login { width: 100%; padding: 16px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--tt-blue) 0%, var(--tt-blue-light) 100%); color: white; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,82,147,0.3); }
+        .error-msg { color: #dc3545; font-size: 0.9rem; margin-top: 15px; display: none; padding: 10px; background: #f8d7da; border-radius: 8px; }
+        .error-msg.show { display: block; }
+        .login-footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 0.85rem; }
+        .login-footer .tt-brand { color: var(--tt-blue); font-weight: 700; }
+        .app-page { display: none; }
+        .app-page.active { display: block; }
+        header { background: linear-gradient(135deg, var(--tt-blue) 0%, var(--tt-blue-light) 100%); padding: 0; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 1000; }
+        .header-top { display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .logo-container { width: 55px; height: 55px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); flex-shrink: 0; overflow: hidden; }
+        .logo-container img { width: 100%; height: 100%; object-fit: cover; }
+        .header-text h1 { color: white; font-size: 1.3rem; font-weight: 700; letter-spacing: 0.5px; }
+        .header-text .subtitle { color: var(--tt-gold); font-size: 0.9rem; font-weight: 500; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .user-badge { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 25px; color: white; font-size: 0.85rem; }
+        .user-badge .role-icon { font-size: 1.1rem; }
+        .btn-logout { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; }
+        .btn-logout:hover { background: rgba(220,53,69,0.8); border-color: transparent; }
+        nav { background: rgba(0,0,0,0.15); padding: 10px 25px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        nav a { color: rgba(255,255,255,0.85); text-decoration: none; font-weight: 500; padding: 8px 16px; border-radius: 25px; transition: all 0.3s ease; font-size: 0.9rem; cursor: pointer; }
+        nav a:hover, nav a.active { background: rgba(255,255,255,0.2); color: white; }
+        main { max-width: 1200px; margin: 0 auto; padding: 25px 20px; }
+        .welcome-banner { background: linear-gradient(135deg, var(--tt-blue) 0%, var(--tt-blue-light) 100%); border-radius: 16px; padding: 25px 30px; color: white; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .welcome-banner h2 { font-size: 1.3rem; margin-bottom: 5px; }
+        .welcome-banner p { opacity: 0.9; font-size: 0.95rem; }
+        .welcome-banner .role-tag { background: var(--tt-gold); color: var(--tt-dark); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 25px; }
+        .stat-card { background: white; border-radius: 16px; padding: 22px; box-shadow: var(--shadow); transition: all 0.3s ease; border-left: 4px solid var(--tt-blue); }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+        .stat-card .icon { font-size: 2.2rem; margin-bottom: 10px; }
+        .stat-card .number { font-size: 1.8rem; font-weight: 700; color: var(--tt-blue); }
+        .stat-card .label { color: #666; font-size: 0.9rem; margin-top: 4px; }
+        .section-title { display: flex; align-items: center; gap: 12px; margin: 25px 0 18px; padding-bottom: 10px; border-bottom: 2px solid var(--tt-blue); }
+        .section-title h2 { color: var(--tt-blue); font-size: 1.25rem; }
+        .section-title .icon { font-size: 1.4rem; }
+        .actions-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { padding: 10px 22px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, var(--tt-blue) 0%, var(--tt-blue-light) 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,82,147,0.3); }
+        .btn-success { background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #ffc107 0%, #ffdb58 100%); color: var(--tt-dark); }
+        .btn-danger { background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        .table-container { background: white; border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 25px; }
+        .table-header { background: linear-gradient(135deg, var(--tt-blue) 0%, var(--tt-blue-light) 100%); color: white; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .table-header h3 { font-size: 1rem; }
+        .search-box { padding: 10px 18px; border: none; border-radius: 25px; width: 280px; font-size: 0.9rem; outline: none; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; color: var(--tt-blue); font-weight: 600; padding: 14px 18px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 12px 18px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        tr:hover { background: #f8f9fa; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-maintenance { background: #fff3cd; color: #856404; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .action-btns { display: flex; gap: 6px; }
+        .action-btns .btn { padding: 6px 12px; font-size: 0.8rem; }
+        .read-only-notice { background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107; padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; color: #856404; }
+        .read-only-notice .icon { font-size: 1.5rem; }
+        footer { background: var(--tt-dark); color: rgba(255,255,255,0.7); text-align: center; padding: 20px; margin-top: 30px; }
+        footer .tt-brand { color: var(--tt-gold); font-weight: 700; }
+        @media (max-width: 768px) {
+            .login-container { padding: 35px 25px; }
+            .header-top { padding: 12px 15px; flex-wrap: wrap; gap: 10px; }
+            .header-text h1 { font-size: 1rem; }
+            .header-text .subtitle { font-size: 0.8rem; }
+            .header-right { width: 100%; justify-content:
