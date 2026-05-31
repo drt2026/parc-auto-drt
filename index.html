@@ -1,130 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parc Auto DRT Sfax</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direction Régionale Tunisie Telecom — Sfax</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f0f0; }
+        h1 { color: #005293; font-size: 2rem; }
+        .subtitle { color: #ffd700; font-size: 1.2rem; margin-top: 10px; }
+        .logo { width: 100px; height: 100px; background: #005293; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <!-- PAGE D'ACCUEIL -->
-  <div id="home-page" class="home-page">
-    <div class="home-card">
-      <div class="logo-section">
-        <div class="logo-circle">
-          <span>🚗</span>
-        </div>
-        <h1>Parc Auto DRT</h1>
-        <p class="subtitle">Direction Régionale de Transport — Sfax</p>
-      </div>
-
-      <div class="role-buttons">
-        <button class="role-btn admin-btn" onclick="showLogin('admin')">
-          <span class="role-icon">🔐</span>
-          <span class="role-title">Espace Administrateur</span>
-          <span class="role-desc">Gestion complète du parc</span>
-        </button>
-
-        <button class="role-btn user-btn" onclick="showLogin('user')">
-          <span class="role-icon">👤</span>
-          <span class="role-title">Espace Utilisateur</span>
-          <span class="role-desc">Consulter mon véhicule</span>
-        </button>
-      </div>
-
-      <div class="home-footer">
-        <p>© 2026 DRT Sfax — Tous droits réservés</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- LOGIN ADMIN -->
-  <div id="login-admin" class="login-page" style="display:none;">
-    <div class="login-card">
-      <button class="back-btn" onclick="goHome()">← Retour</button>
-
-      <div class="logo-section" style="margin-bottom: 24px;">
-        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;">
-          <span>🔐</span>
-        </div>
-        <h2>Administration</h2>
-        <p class="subtitle">Accès réservé aux administrateurs</p>
-      </div>
-
-      <form id="admin-login-form">
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" id="admin-email" required placeholder="admin@drt.tn">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Mot de passe</label>
-          <input type="password" class="form-control" id="admin-password" required placeholder="••••••">
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;margin-top:8px;">
-          <span>🔐</span> Connexion
-        </button>
-      </form>
-
-      <div class="demo-info">
-        <strong>Compte démo :</strong><br>
-        Email: admin@drt.tn<br>
-        Mot de passe: admin123
-      </div>
-    </div>
-  </div>
-
-  <!-- LOGIN UTILISATEUR (Matricule seul) -->
-  <div id="login-user" class="login-page" style="display:none;">
-    <div class="login-card">
-      <button class="back-btn" onclick="goHome()">← Retour</button>
-
-      <div class="logo-section" style="margin-bottom: 24px;">
-        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;">
-          <span>👤</span>
-        </div>
-        <h2>Consulter mon véhicule</h2>
-        <p class="subtitle">Entrez votre matricule pour accéder</p>
-      </div>
-
-      <form id="user-login-form">
-        <div class="form-group">
-          <label class="form-label">Matricule du véhicule</label>
-          <input type="text" class="form-control" id="user-matricule" required placeholder="Ex: 123 TU 4567" style="text-transform:uppercase;">
-        </div>
-
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;margin-top:8px;">
-          <span>🔍</span> Rechercher mon véhicule
-        </button>
-      </form>
-
-      <div class="demo-info">
-        <strong>Matricules de démo :</strong><br>
-        123 TU 4567, 456 TU 7890, 789 TU 1234<br>
-        321 TU 5678, 654 TU 9012
-      </div>
-    </div>
-  </div>
-
-  <!-- INTERFACE UTILISATEUR -->
-  <div id="user-interface" style="display:none;">
-    <div class="user-header-bar">
-      <div class="user-header-left">
-        <div class="logo-mini">🚗</div>
-        <div>
-          <h3>Parc Auto DRT</h3>
-          <span class="sync-mini">🔄 Synchronisé</span>
-        </div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="logout()">🚪 Déconnexion</button>
-    </div>
-
-    <div class="user-container">
-      <div id="user-vehicle-detail"></div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
+    <div class="logo">TT</div>
+    <h1>Direction Régionale Tunisie Telecom</h1>
+    <div class="subtitle">— Sfax —</div>
+    <p style="margin-top: 30px; color: #666;">Application en cours de mise à jour...</p>
 </body>
 </html>
