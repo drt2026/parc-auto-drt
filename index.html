@@ -178,6 +178,64 @@
     <div class="footer">
         <p>© 2026 <span class="brand">Direction Régionale Tunisie Telecom — Sfax</span></p>
     </div>
+    <script>
+        function addVehicle() {
+            const immat = prompt("🚗 Ajouter un véhicule\n\nImmatriculation (ex: 128 TU 4567):");
+            if (immat) {
+                const marque = prompt("Marque (ex: Peugeot):");
+                const modele = prompt("Modèle (ex: 208):");
+                const annee = prompt("Année (ex: 2023):");
+                if (marque && modele && annee) {
+                    alert("✅ Véhicule ajouté !\n" + immat + " - " + marque + " " + modele);
+                }
+            }
+        }
+        
+        function exportExcel() {
+            const table = document.querySelector('table tbody');
+            let csv = "N°,Immatriculation,Marque,Modèle,Année,Statut\n";
+            const rows = table.getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                if (cells.length > 0) {
+                    csv += cells[0].innerText + "," + cells[1].innerText + "," + cells[2].innerText + "," + cells[3].innerText + "," + cells[4].innerText + "," + cells[5].innerText + "\n";
+                }
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'parc_auto_drt_sfax.csv';
+            a.click();
+            alert("📥 Export terminé ! Fichier : parc_auto_drt_sfax.csv");
+        }
+        
+        function searchVehicles() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.querySelector('table tbody');
+            const rows = table.getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                let found = false;
+                for (let j = 0; j < cells.length; j++) {
+                    if (cells[j] && cells[j].textContent.toLowerCase().indexOf(filter) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = found ? '' : 'none';
+            }
+        }
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW enregistré'))
+                .catch(err => console.log('Erreur SW:', err));
+        }
+    </script>
 
+</body>
+</html>
 </body>
 </html>
