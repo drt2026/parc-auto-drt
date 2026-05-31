@@ -1,1 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>Parc Auto TT Sfax</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background: linear-gradient(135deg, #005293 0%, #003d6b 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .logo { 
+            width: 120px; 
+            height: 120px; 
+            background: white; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .logo-text { color: #005293; font-size: 3rem; font-weight: bold; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-align: center; }
+        .subtitle { color: #ffd700; font-size: 1.5rem; margin-bottom: 40px; }
+        .btn { 
+            padding: 15px 40px; 
+            background: white; 
+            color: #005293; 
+            border: none; 
+            border-radius: 30px; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .btn:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <span class="logo-text">TT</span>
+    </div>
+    <h1>Direction Régionale Tunisie Telecom</h1>
+    <div class="subtitle">— Sfax —</div>
+    <button class="btn" onclick="enterApp()">Entrer dans l'application</button>
 
+    <script>
+        function enterApp() {
+            window.location.href = 'v2/index.html';
+        }
+    </script>
+</body>
+</html>
