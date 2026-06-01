@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Parc Auto Tunisie Telecom</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🚗</div>
+      <div class="sidebar-title">
+        Parc Auto DRT
+        <span>Administration</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Principal</div>
+        <a href="#" class="nav-item active" data-nav="dashboard">
+          <span>📊</span> Tableau de bord
+        </a>
+        <a href="#" class="nav-item" data-nav="vehicles">
+          <span>🚗</span> Véhicules
+          <span class="nav-badge" id="nav-vehicle-count">0</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="alerts">
+          <span>🚨</span> Alertes
+          <span class="nav-badge" id="nav-alert-count" style="display:none;">0</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Gestion</div>
+        <a href="#" class="nav-item" data-nav="repairs">
+          <span>🔧</span> Réparations
+        </a>
+        <a href="#" class="nav-item" data-nav="add-repair">
+          <span>➕</span> Nouvelle Intervention
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Système</div>
+        <a href="#" class="nav-item" data-nav="settings">
+          <span>⚙️</span> Paramètres
+        </a>
+        <a href="#" class="nav-item" onclick="exportData()">
+          <span>💾</span> Exporter
+        </a>
+        <a href="#" class="nav-item" onclick="importData()">
+          <span>📥</span> Importer
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">👤</div>
+        <div class="user-details">
+          <div class="user-name" id="admin-name">Administrateur</div>
+          <div class="user-role">Super Admin</div>
+        </div>
+        <button class="btn-icon" onclick="logout()" title="Déconnexion" style="border:none;background:rgba(255,255,255,0.1);color:white;width:32px;height:32px;">
+          🚪
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="breadcrumb">
+        <a href="#" onclick="showTab('dashboard')">Accueil</a>
+        <span>/</span>
+        <span id="breadcrumb-current">Tableau de bord</span>
+      </div>
+
+      <div class="header-actions">
+        <div id="sync-status">
+          <span class="sync-status synced">🔄 Synchronisé</span>
+        </div>
+        <button class="btn-icon" onclick="syncNow()" title="Synchroniser maintenant">🔄</button>
+        <button class="btn-icon" title="Notifications">🔔<span class="notification-dot" id="notif-dot" style="display:none;"></span></button>
+        <button class="btn-icon" onclick="logout()" title="Déconnexion">🚪</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- DASHBOARD -->
+      <div id="tab-dashboard" class="tab-content active">
+        <h1 class="page-title">Tableau de bord</h1>
+        <p class="page-subtitle">Vue d'ensemble du parc automobile Tunisie Telecom</p>
+
+        <div id="stats-container"></div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🚨 Alertes Actives</span>
+            <button class="btn btn-sm btn-secondary" onclick="showTab('alerts')">Voir tout</button>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr><th>Matricule</th><th>Chauffeur</th><th>Type Alerte</th><th>Détail</th><th>KM Index</th></tr>
+                </thead>
+                <tbody id="dashboard-alerts-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔧 Dernières Interventions</span>
+            <button class="btn btn-sm btn-secondary" onclick="showTab('repairs')">Voir tout</button>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Matricule</th><th>Type</th><th>Désignation</th><th>Montant</th></tr>
+                </thead>
+                <tbody id="dashboard-repairs-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VEHICULES -->
+      <div id="tab-vehicles" class="tab-content">
+        <h1 class="page-title">Parc Véhicules</h1>
+        <p class="page-subtitle">Gestion complète des véhicules</p>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="search-box">
+              <input type="text" placeholder="Rechercher un véhicule..." id="search-vehicles">
+            </div>
+            <button class="btn btn-primary" onclick="openVehicleModal()">
+              <span>➕</span> Ajouter Véhicule
+            </button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Matricule</th><th>Modèle</th><th>Chauffeur</th><th>KM Actuel</th>
+                    <th>Proch. Vidange</th><th>Proch. Chaîne</th><th>Visite Tech.</th><th>Statut</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="vehicles-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALERTES -->
+      <div id="tab-alerts" class="tab-content">
+        <h1 class="page-title">Alertes</h1>
+        <p class="page-subtitle">Dépassements et échéances à traiter</p>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🚨 Véhicules en Alerte</span>
+            <div class="filters">
+              <button class="btn btn-sm btn-secondary" onclick="filterAlerts('all')">Toutes</button>
+              <button class="btn btn-sm btn-danger" onclick="filterAlerts('urgent')">Urgentes</button>
+              <button class="btn btn-sm btn-warning" onclick="filterAlerts('warning')">Avertissements</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr><th>Matricule</th><th>Chauffeur</th><th>Priorité</th><th>Type</th><th>Détail</th><th>KM Actuel</th></tr>
+                </thead>
+                <tbody id="alerts-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPARATIONS -->
+      <div id="tab-repairs" class="tab-content">
+        <h1 class="page-title">Historique Réparations</h1>
+        <p class="page-subtitle">Toutes les interventions enregistrées</p>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="search-box">
+              <input type="text" placeholder="Rechercher..." id="search-repairs">
+            </div>
+            <button class="btn btn-primary" onclick="showTab('add-repair')">
+              <span>➕</span> Nouvelle Intervention
+            </button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr><th>Date</th><th>Matricule</th><th>Chauffeur</th><th>Type</th><th>Désignation</th><th>KM</th><th>Montant HT</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="repairs-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOUVELLE INTERVENTION -->
+      <div id="tab-add-repair" class="tab-content">
+        <h1 class="page-title">Nouvelle Intervention</h1>
+        <p class="page-subtitle">Enregistrer une réparation, vidange ou visite technique</p>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Formulaire d'intervention</span>
+          </div>
+          <div class="card-body">
+            <form id="repair-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Véhicule <span class="required">*</span></label>
+                  <select class="form-control" id="repair-matricule" required>
+                    <option value="">Sélectionner un véhicule</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Chauffeur</label>
+                  <input type="text" class="form-control" id="repair-chauffeur" placeholder="Nom du chauffeur">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Type d'intervention <span class="required">*</span></label>
+                  <select class="form-control" id="repair-type" required>
+                    <option value="">Sélectionner</option>
+                    <option value="Vidange">Vidange</option>
+                    <option value="Kit Chaîne">Kit Chaîne</option>
+                    <option value="Visite Technique">Visite Technique</option>
+                    <option value="Réparation">Réparation</option>
+                    <option value="Pneumatique">Pneumatique</option>
+                    <option value="Freinage">Freinage</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Date intervention <span class="required">*</span></label>
+                  <input type="date" class="form-control" id="repair-date" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Kilométrage (km) <span class="required">*</span></label>
+                  <input type="number" class="form-control" id="repair-km" required placeholder="Ex: 45000">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Montant HT (TND)</label>
+                  <input type="number" class="form-control" id="repair-montant" step="0.01" placeholder="0.00">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Désignation / Description</label>
+                <textarea class="form-control" id="repair-designation" rows="3" placeholder="Décrivez l'intervention effectuée..."></textarea>
+              </div>
+
+              <div class="form-group" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-top:8px;">
+                <label class="form-label" style="color:var(--primary);font-weight:700;">📅 Mise à jour automatique des seuils</label>
+                <p style="font-size:12px;color:var(--secondary);margin-bottom:12px;">Ces valeurs mettront à jour le véhicule automatiquement.</p>
+                <div class="form-row">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Prochaine vidange (km)</label>
+                    <input type="number" class="form-control" id="repair-next-vidange" placeholder="Ex: 50000">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Prochaine chaîne (km)</label>
+                    <input type="number" class="form-control" id="repair-next-chaine" placeholder="Ex: 55000">
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Prochaine visite tech. (date)</label>
+                    <input type="date" class="form-control" id="repair-next-visite">
+                  </div>
+                </div>
+              </div>
+
+              <div class="btn-group" style="margin-top:24px;">
+                <button type="submit" class="btn btn-primary"><span>💾</span> Enregistrer</button>
+                <button type="button" class="btn btn-secondary" onclick="showTab('repairs')">Annuler</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- PARAMÈTRES -->
+      <div id="tab-settings" class="tab-content">
+        <h1 class="page-title">Paramètres</h1>
+        <p class="page-subtitle">Configuration du système</p>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚙️ Seuils d'alertes</span>
+          </div>
+          <div class="card-body">
+            <form id="settings-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Alerte vidange (km avant)</label>
+                  <input type="number" class="form-control" id="setting-alerte-vidange" value="1000">
+                  <small style="color:var(--secondary);">Nombre de km avant l'échéance pour déclencher une alerte</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Alerte chaîne (km avant)</label>
+                  <input type="number" class="form-control" id="setting-alerte-chaine" value="1000">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Alerte visite technique (jours avant)</label>
+                  <input type="number" class="form-control" id="setting-alerte-visite" value="7">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Nom de l'entreprise</label>
+                <input type="text" class="form-control" id="setting-entreprise" value="DRT Sfax">
+              </div>
+
+              <div class="btn-group" style="margin-top:24px;">
+                <button type="submit" class="btn btn-primary"><span>💾</span> Sauvegarder</button>
+                <button type="button" class="btn btn-secondary" onclick="exportData()"><span>📤</span> Exporter données</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:24px;">
+          <div class="card-header">
+            <span class="card-title">📥 Importation de données</span>
+          </div>
+          <div class="card-body">
+            <p style="margin-bottom:16px;">Importez un fichier JSON précédemment exporté pour restaurer vos données.</p>
+            <button class="btn btn-secondary" onclick="importData()"><span>📥</span> Sélectionner un fichier</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL VÉHICULE -->
+  <div class="modal-overlay" id="vehicle-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="vehicle-modal-title">Nouveau Véhicule</span>
+        <button class="modal-close" onclick="closeModal('vehicle-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="vehicle-form">
+          <input type="hidden" id="vehicle-id">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Matricule <span class="required">*</span></label>
+              <input type="text" class="form-control" id="vehicle-matricule" required placeholder="Ex: 123 TU 4567">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Modèle <span class="required">*</span></label>
+              <input type="text" class="form-control" id="vehicle-modele" required placeholder="Ex: Peugeot 301">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chauffeur</label>
+            <input type="text" class="form-control" id="vehicle-chauffeur" placeholder="Nom complet du chauffeur">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kilométrage actuel (km)</label>
+              <input type="number" class="form-control" id="vehicle-km" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prochaine vidange (km)</label>
+              <input type="number" class="form-control" id="vehicle-vidange" placeholder="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Prochaine chaîne (km)</label>
+              <input type="number" class="form-control" id="vehicle-chaine" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prochaine visite technique</label>
+              <input type="date" class="form-control" id="vehicle-visite">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding:16px 0 0 0;border:none;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('vehicle-modal')">Annuler</button>
+            <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if (!checkAdmin()) {
+      // Redirection gérée dans checkAdmin
+    }
+  </script>
+</body>
+</html>
