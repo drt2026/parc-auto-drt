@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parc Auto DRT Sfax — Tunisie Telecom</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f97316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Parc DRT">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: 'IBM Plex Sans', sans-serif; }
+
+    .home-page {
+      background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .home-page::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridScroll 20s linear infinite;
+    }
+    .home-page::after {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(239,68,68,0.08) 0%, rgba(245,158,11,0.05) 25%, rgba(16,185,129,0.05) 50%, rgba(59,130,246,0.08) 75%, transparent 100%);
+      pointer-events: none;
+    }
+    @keyframes gridScroll {
+      0%   { background-position: 0 0; }
+      100% { background-position: 48px 48px; }
+    }
+    .home-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.6);
+      backdrop-filter: blur(24px);
+      border-radius: 20px;
+      padding: 28px 28px 20px;
+      max-width: 480px;
+      width: 92%;
+      position: relative; z-index: 1;
+      animation: cardIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(32px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tt-logo-wrap {
+      display: flex; align-items: center; gap: 14px;
+      justify-content: center; margin-bottom: 6px;
+    }
+    .tt-logo-badge {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #ef4444 0%, #f97316 30%, #eab308 60%, #22c55e 100%);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(239,68,68,0.2);
+      font-size: 24px; flex-shrink: 0;
+    }
+    .tt-logo-text h1 { font-size: 20px; font-weight: 700; color: #1e293b; letter-spacing: -0.3px; margin-bottom: 1px; }
+    .tt-logo-text .tt-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      background: linear-gradient(90deg, #ef4444, #f97316, #22c55e, #3b82f6, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px; text-transform: uppercase; font-weight: 600;
+    }
+    .home-divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239,68,68,0.2), rgba(245,158,11,0.2), rgba(59,130,246,0.2), transparent);
+      margin: 16px 0;
+    }
+    .home-subtitle {
+      font-size: 12px; color: #64748b;
+      text-align: center; margin-bottom: 16px;
+      text-transform: uppercase; letter-spacing: 2px;
+    }
+    .role-buttons { display: flex; flex-direction: column; gap: 10px; }
+    .role-btn {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 14px;
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(0,0,0,0.06);
+      cursor: pointer; transition: all 0.25s ease;
+      text-align: left; color: inherit; width: 100%;
+    }
+    .role-btn:hover {
+      background: rgba(255,255,255,0.95);
+      border-color: rgba(239,68,68,0.25);
+      transform: translateX(4px);
+      box-shadow: -4px 0 0 0 #ef4444, 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .role-btn-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .admin-btn .role-btn-icon { background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(249,115,22,0.12)); }
+    .user-btn  .role-btn-icon { background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(168,85,247,0.12)); }
+    .role-btn-text { flex: 1 !important; text-align: left !important; }
+    .role-title { display: block; font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 2px; }
+    .role-desc  { display: block; font-size: 11px; color: #64748b; }
+    .role-arrow { color: #94a3b8; font-size: 18px; transition: transform 0.2s; flex-shrink: 0; }
+    .role-btn:hover .role-arrow { transform: translateX(4px); color: #ef4444; }
+    .home-footer { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); text-align: center; }
+    .home-footer p { font-size: 10px; color: #94a3b8; letter-spacing: 0.5px; }
+
+    /* LOGIN */
+    .login-page { background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%); position: relative; overflow: hidden; }
+    .login-page::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.6);
+      backdrop-filter: blur(24px);
+      border-radius: 20px; padding: 44px 40px;
+      max-width: 420px; position: relative; z-index: 1;
+      animation: cardIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .login-card .logo-section h2 { color: #1e293b; }
+    .login-card .subtitle { color: #64748b; }
+    .login-card .form-label { color: #475569; }
+    .login-card .form-control { background: #ffffff; border-color: #e2e8f0; color: #1e293b; }
+    .login-card .form-control:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.12); background: #ffffff; }
+    .login-card .form-control::placeholder { color: #94a3b8; }
+    .login-card .btn-primary { background: linear-gradient(135deg, #ef4444, #f97316); box-shadow: 0 4px 16px rgba(239,68,68,0.2); }
+    .login-card .btn-primary:hover { background: linear-gradient(135deg, #f87171, #fb923c); box-shadow: 0 6px 20px rgba(239,68,68,0.3); }
+    .login-card .back-btn { color: #64748b; }
+    .login-card .back-btn:hover { background: rgba(0,0,0,0.04); color: #1e293b; }
+    .login-card .demo-info { background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.12); color: #64748b; }
+    .login-card .logo-circle { background: linear-gradient(135deg, #ef4444, #f97316, #eab308); box-shadow: 0 6px 20px rgba(239,68,68,0.2); }
+
+    /* User interface */
+    .user-header-bar { background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+    .user-header-left h3 { color: #1e293b; }
+    .logo-mini { background: linear-gradient(135deg, #ef4444, #f97316, #eab308); }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE D'ACCUEIL -->
+  <div id="home-page" class="home-page">
+    <div class="home-card">
+      <div class="tt-logo-wrap">
+        <div class="tt-logo-badge">🚗</div>
+        <div class="tt-logo-text">
+          <h1>Parc Auto DRT Sfax</h1>
+          <span class="tt-tag">Tunisie Telecom</span>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;">Direction Régionale de Sfax</div>
+        </div>
+      </div>
+
+      <div class="home-divider"></div>
+
+      <div class="role-buttons">
+        <button class="role-btn admin-btn" onclick="showLogin('admin')">
+          <div class="role-btn-icon">🔐</div>
+          <div class="role-btn-text">
+            <span class="role-title">Espace Administrateur</span>
+            <span class="role-desc">Gestion complète du parc</span>
+          </div>
+          <span class="role-arrow">›</span>
+        </button>
+
+        <button class="role-btn user-btn" onclick="showLogin('user')">
+          <div class="role-btn-icon">👤</div>
+          <div class="role-btn-text">
+            <span class="role-title">Espace Utilisateur</span>
+            <span class="role-desc">Consulter mon véhicule</span>
+          </div>
+          <span class="role-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="home-footer">
+        <p>© 2026 Tunisie Telecom — Tous droits réservés</p>
+        <p style="margin-top:6px;">Créé par <strong>Hamdi Ben Aouicha</strong> — Chef de Parc DRT Sfax</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN ADMIN -->
+  <div id="login-admin" class="login-page" style="display:none;">
+    <div class="login-card">
+      <button class="back-btn" onclick="goHome()">← Retour</button>
+      <div class="logo-section" style="margin-bottom:24px;text-align:center;">
+        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;margin:0 auto 16px;">
+          <span>🔐</span>
+        </div>
+        <h2>Administration</h2>
+        <p class="subtitle">Accès réservé aux administrateurs</p>
+      </div>
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="admin-email" required placeholder="admin@drt.tn">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input type="password" class="form-control" id="admin-password" required placeholder="••••••••">
+        </div>
+
+        <!-- ÉTAPE OTP — masquée au départ -->
+        <div id="otp-step" style="display:none;">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:600;color:#166534;margin-bottom:4px;">🔐 Double authentification</div>
+            <div style="font-size:12px;color:#15803d;">Code envoyé à <strong id="otp-info-email"></strong></div>
+            <div style="font-size:11px;color:#16a34a;margin-top:2px;">⏱ Valable 5 minutes</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Code OTP à 6 chiffres</label>
+            <input type="text" class="form-control" id="admin-otp"
+                   maxlength="6" placeholder="• • • • • •"
+                   style="font-size:22px;letter-spacing:10px;text-align:center;font-weight:700;"
+                   oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <div style="font-size:11px;color:#64748b;text-align:center;margin-bottom:8px;">
+            Pas reçu ? <a href="#" onclick="resendOTP(event)" style="color:#ef4444;text-decoration:none;">Renvoyer le code</a>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:8px;">
+          🔐 &nbsp;Connexion
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- LOGIN UTILISATEUR -->
+  <div id="login-user" class="login-page" style="display:none;">
+    <div class="login-card">
+      <button class="back-btn" onclick="goHome()">← Retour</button>
+      <div class="logo-section" style="margin-bottom:24px;text-align:center;">
+        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;margin:0 auto 16px;">
+          <span>👤</span>
+        </div>
+        <h2>Consulter mon véhicule</h2>
+        <p class="subtitle">Entrez votre matricule pour accéder</p>
+      </div>
+      <form id="user-login-form">
+        <div class="form-group">
+          <label class="form-label">Matricule du véhicule</label>
+          <input type="text" class="form-control" id="user-matricule" required
+                 placeholder="Ex: 17-XXXXXX" style="text-transform:uppercase;letter-spacing:1px;"
+                 oninput="formatMatricule(this)" maxlength="9"
+                 autocomplete="off" autocorrect="off" spellcheck="false">
+          <small style="color:#94a3b8;font-size:11px;margin-top:4px;display:block;">Format: 17-XXXXXX (le tiret s'ajoute automatiquement)</small>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:8px;">
+          🔍 &nbsp;Rechercher mon véhicule
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- CONSEILS ENTRETIEN -->
+  <div id="tips-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,#fff5f5 0%,#fffbeb 30%,#f0fdf4 60%,#eff6ff 100%);overflow-y:auto;-webkit-overflow-scrolling:touch;">
+    <div style="background:rgba(255,255,255,0.95);border:1px solid rgba(0,0,0,0.07);border-radius:20px;padding:24px 16px;max-width:460px;width:calc(100% - 24px);box-shadow:0 12px 40px rgba(0,0,0,0.08);text-align:center;margin:12px auto;">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,#f97316,#eab308);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 12px;box-shadow:0 8px 20px rgba(249,115,22,0.25);">🔧</div>
+      <h2 style="font-size:16px;font-weight:700;color:#1e293b;margin-bottom:4px;">Conseils d'entretien</h2>
+      <p style="font-size:11px;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;">Parc Auto DRT Sfax</p>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;text-align:left;">
+        <div id="tip-card-1" style="display:flex;gap:14px;align-items:flex-start;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.12);border-radius:12px;padding:14px 16px;transition:all 0.3s ease;">
+          <span style="font-size:22px;flex-shrink:0;">🛢️</span>
+          <div>
+            <strong style="font-size:13px;color:#1e293b;display:block;margin-bottom:3px;">Niveau d'huile</strong>
+            <span style="font-size:12px;color:#64748b;line-height:1.5;">Vérifier le niveau d'huile régulièrement, notamment avant un grand trajet ou tous les 2 500 km.</span>
+          </div>
+        </div>
+        <div id="tip-card-2" style="display:flex;gap:14px;align-items:flex-start;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.15);border-radius:12px;padding:14px 16px;transition:all 0.3s ease;">
+          <span style="font-size:22px;flex-shrink:0;">🔩</span>
+          <div>
+            <strong style="font-size:13px;color:#1e293b;display:block;margin-bottom:3px;">Entretiens périodiques</strong>
+            <span style="font-size:12px;color:#64748b;line-height:1.5;">Effectuer les entretiens périodiques tous les 10 000 km, selon les spécifications du constructeur.</span>
+          </div>
+        </div>
+        <div id="tip-card-3" style="display:flex;gap:14px;align-items:flex-start;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:12px;padding:14px 16px;transition:all 0.3s ease;">
+          <span style="font-size:22px;flex-shrink:0;">📅</span>
+          <div>
+            <strong style="font-size:13px;color:#1e293b;display:block;margin-bottom:3px;">Intervalle vidange</strong>
+            <span style="font-size:12px;color:#64748b;line-height:1.5;">L'intervalle entre deux vidanges ne doit jamais dépasser un an, même si le kilométrage n'est pas atteint.</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:8px;">
+        <div style="flex:1;max-width:200px;height:4px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+          <div id="tips-progress-fill" style="height:100%;background:linear-gradient(90deg,#ef4444,#f97316);width:0%;border-radius:4px;"></div>
+        </div>
+        <span style="font-size:11px;color:#94a3b8;" id="tips-countdown">...</span>
+      </div>
+      <span id="tips-voice-status" style="display:block;font-size:11px;color:#94a3b8;margin-bottom:16px;">🔊 Lecture en cours...</span>
+      <button onclick="closeTips()" style="background:linear-gradient(135deg,#ef4444,#f97316);color:white;border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(239,68,68,0.25);">
+        Continuer →
+      </button>
+    </div>
+  </div>
+
+  <!-- INTERFACE UTILISATEUR -->
+  <div id="user-interface" style="display:none;">
+    <div class="user-header-bar">
+      <div class="user-header-left">
+        <div class="logo-mini">🚗</div>
+        <div>
+          <h3>Parc Auto TT DRT Sfax</h3>
+          <span class="sync-mini">🔄 Synchronisé</span>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+    <div class="user-container">
+      <div id="user-vehicle-detail"></div>
+    </div>
+  </div>
+
+  <script>
+    // Inline navigation functions for immediate access
+    function showLogin(type) {
+      document.getElementById('home-page').style.display = 'none';
+      if (type === 'admin') {
+        document.getElementById('login-admin').style.display = 'flex';
+      } else {
+        document.getElementById('login-user').style.display = 'flex';
+      }
+    }
+    // ---- CONSEILS VOIX ----
+    const TIPS_ITEMS = [
+      {
+        id: 'tip-card-1',
+        text: "Vérifier le niveau d'huile régulièrement, notamment avant un grand trajet ou tous les 2 500 kilomètres.",
+        highlightBg: 'rgba(239,68,68,0.14)', highlightBorder: 'rgba(239,68,68,0.45)',
+        defaultBg:   'rgba(239,68,68,0.05)', defaultBorder:   'rgba(239,68,68,0.12)'
+      },
+      {
+        id: 'tip-card-2',
+        text: "Effectuer les entretiens périodiques tous les 10 000 kilomètres, selon les spécifications du constructeur.",
+        highlightBg: 'rgba(245,158,11,0.14)', highlightBorder: 'rgba(245,158,11,0.5)',
+        defaultBg:   'rgba(245,158,11,0.05)', defaultBorder:   'rgba(245,158,11,0.15)'
+      },
+      {
+        id: 'tip-card-3',
+        text: "L'intervalle entre deux vidanges ne doit jamais dépasser un an, même si le kilométrage n'est pas atteint.",
+        highlightBg: 'rgba(16,185,129,0.14)', highlightBorder: 'rgba(16,185,129,0.45)',
+        defaultBg:   'rgba(16,185,129,0.05)', defaultBorder:   'rgba(16,185,129,0.15)'
+      }
+    ];
+
+    function highlightTip(index) {
+      TIPS_ITEMS.forEach((item, i) => {
+        const el = document.getElementById(item.id);
+        if (!el) return;
+        if (i === index) {
+          el.style.background  = item.highlightBg;
+          el.style.borderColor = item.highlightBorder;
+          el.style.transform   = 'scale(1.02)';
+          el.style.boxShadow   = '0 4px 16px rgba(0,0,0,0.10)';
+        } else {
+          el.style.background  = item.defaultBg;
+          el.style.borderColor = item.defaultBorder;
+          el.style.transform   = 'scale(1)';
+          el.style.boxShadow   = 'none';
+        }
+      });
+    }
+
+    function resetHighlights() {
+      TIPS_ITEMS.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (!el) return;
+        el.style.background  = item.defaultBg;
+        el.style.borderColor = item.defaultBorder;
+        el.style.transform   = 'scale(1)';
+        el.style.boxShadow   = 'none';
+      });
+    }
+
+    function updateStatus(msg) {
+      const el = document.getElementById('tips-voice-status');
+      if (el) el.textContent = msg;
+    }
+
+    function speakIndex(index) {
+      if (!window._tipsSpeaking) return;
+      if (index >= TIPS_ITEMS.length) {
+        resetHighlights();
+        updateStatus('✅ Lecture terminée');
+        return;
+      }
+      highlightTip(index);
+      const labels = ["🔊 Conseil 1 sur 3...", "🔊 Conseil 2 sur 3...", "🔊 Conseil 3 sur 3..."];
+      updateStatus(labels[index]);
+      const utter = new SpeechSynthesisUtterance(TIPS_ITEMS[index].text);
+      utter.lang  = 'fr-FR';
+      utter.rate  = 0.65;
+      utter.pitch = 1.0;
+      const voices = window.speechSynthesis.getVoices();
+      const frVoice = voices.find(v => v.lang === 'fr-FR') || voices.find(v => v.lang.startsWith('fr'));
+      if (frVoice) utter.voice = frVoice;
+      utter.onend   = () => { if (window._tipsSpeaking) setTimeout(() => speakIndex(index + 1), 500); };
+      utter.onerror = () => updateStatus('⚠️ Erreur voix');
+      window.speechSynthesis.speak(utter);
+    }
+
+    function showTips(callback) {
+      window._tipsCallback = callback;
+      window._tipsSpeaking = true;
+      resetHighlights();
+      updateStatus('🔊 Lecture en cours...');
+      document.getElementById('tips-overlay').style.display = 'flex';
+      // Start voice — this works because showTips is called from a user gesture chain (form submit)
+      const startSpeak = () => speakIndex(0);
+      if (window.speechSynthesis) {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) { startSpeak(); }
+        else { window.speechSynthesis.onvoiceschanged = startSpeak; }
+      } else {
+        updateStatus('⚠️ Voix non supportée');
+      }
+      // Progress bar + auto-close after 40s
+      let secs = 40;
+      const fill = document.getElementById('tips-progress-fill');
+      const cd   = document.getElementById('tips-countdown');
+      if (fill) { fill.style.transition = 'width 40s linear'; setTimeout(() => fill.style.width = '100%', 50); }
+      if (cd) cd.textContent = secs + 's';
+      const iv = setInterval(() => {
+        secs--;
+        if (cd) cd.textContent = secs > 0 ? secs + 's' : '';
+        if (secs <= 0) { clearInterval(iv); closeTips(); }
+      }, 1000);
+      window._tipsInterval = iv;
+    }
+
+    function closeTips() {
+      clearInterval(window._tipsInterval);
+      window._tipsSpeaking = false;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      resetHighlights();
+      document.getElementById('tips-overlay').style.display = 'none';
+      if (window._tipsCallback) window._tipsCallback();
+    }
+
+    function goHome() {
+      document.getElementById('login-admin').style.display = 'none';
+      document.getElementById('login-user').style.display = 'none';
+      document.getElementById('user-interface').style.display = 'none';
+      document.getElementById('home-page').style.display = 'flex';
+    }
+
+    // Auto-format matricule: 17-XXXXXX
+    function formatMatricule(input) {
+      let val = input.value.replace(/[^0-9]/g, ''); // Keep only digits
+      if (val.length > 2) {
+        val = val.slice(0, 2) + '-' + val.slice(2, 8);
+      }
+      input.value = val;
+    }
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
