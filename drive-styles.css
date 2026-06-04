@@ -1,0 +1,242 @@
+/* ============================================================
+   PARC AUTO DRT SFAX — STYLES GOOGLE DRIVE
+   À ajouter à la fin de styles.css
+   ============================================================ */
+
+/* ---- STATUT DRIVE ---- */
+[data-drive-dot] {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 5px;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.drive-connected  { background: #10b981; box-shadow: 0 0 6px #10b981; }
+.drive-syncing    { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; animation: drivePulse 1s infinite; }
+.drive-synced     { background: #10b981; box-shadow: 0 0 6px #10b981; }
+.drive-error      { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.drive-disconnected { background: #94a3b8; }
+
+@keyframes drivePulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* ---- BARRE DRIVE DANS LE HEADER ---- */
+.drive-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+}
+.drive-bar-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+.drive-bar-status { color: #64748b; font-size: 12px; }
+.drive-bar-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  border: none; cursor: pointer; transition: all 0.2s;
+}
+.drive-btn-connect {
+  background: linear-gradient(135deg, #4285f4, #34a853);
+  color: white;
+  box-shadow: 0 2px 8px rgba(66,133,244,0.25);
+}
+.drive-btn-connect:hover { filter: brightness(1.05); box-shadow: 0 4px 12px rgba(66,133,244,0.35); }
+.drive-btn-sync {
+  background: rgba(59,130,246,0.1); color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.2);
+}
+.drive-btn-sync:hover { background: rgba(59,130,246,0.18); }
+.drive-btn-disconnect {
+  background: rgba(239,68,68,0.08); color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.15);
+}
+.drive-btn-disconnect:hover { background: rgba(239,68,68,0.15); }
+
+/* ---- SECTION DRIVE DANS LES FICHES VÉHICULE ---- */
+.drive-section {
+  border: 1px solid rgba(66,133,244,0.15);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.drive-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(66,133,244,0.06), rgba(52,168,83,0.04));
+  border-bottom: 1px solid rgba(66,133,244,0.1);
+  cursor: pointer;
+}
+.drive-section-title {
+  font-size: 13px; font-weight: 700; color: #1e293b;
+  display: flex; align-items: center; gap: 8px;
+}
+.drive-section-body { padding: 16px 18px; }
+
+/* ---- UPLOAD WIDGET ---- */
+.drive-upload-widget { margin-bottom: 12px; }
+
+.duw-dropzone {
+  border: 2px dashed rgba(66,133,244,0.3);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(66,133,244,0.02);
+}
+.duw-dropzone:hover,
+.duw-dropzone.dragover {
+  border-color: rgba(66,133,244,0.6);
+  background: rgba(66,133,244,0.05);
+}
+.duw-icon { font-size: 28px; margin-bottom: 6px; }
+.duw-title { font-size: 13px; font-weight: 600; color: #1e293b; }
+.duw-sub { font-size: 12px; color: #64748b; margin-top: 3px; }
+.duw-browse { color: #3b82f6; cursor: pointer; text-decoration: underline; }
+.duw-dest { font-size: 11px; color: #10b981; margin-top: 6px; font-weight: 600; }
+
+.duw-progress-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.duw-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 8px;
+  background: rgba(0,0,0,0.02);
+  border-radius: 6px; padding: 7px 10px;
+  font-size: 12px;
+}
+.duw-item-name { color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duw-item-bar {
+  width: 80px; height: 4px;
+  background: rgba(0,0,0,0.08); border-radius: 2px; overflow: hidden;
+}
+.duw-item-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  transition: width 0.2s;
+}
+.duw-item.done .duw-item-fill { background: #10b981; }
+.duw-item.error .duw-item-fill { background: #ef4444; }
+.duw-item-pct { font-size: 11px; color: #64748b; min-width: 24px; text-align: right; }
+.duw-item.done .duw-item-pct { color: #10b981; }
+.duw-item.error .duw-item-pct { color: #ef4444; }
+
+/* ---- GALERIE FICHIERS ---- */
+.dfg-empty {
+  text-align: center; padding: 24px; color: #94a3b8; font-size: 13px;
+}
+.dfg-sections { display: flex; flex-direction: column; gap: 16px; }
+.dfg-section-title {
+  font-size: 12px; font-weight: 700; color: #475569;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.dfg-count {
+  background: rgba(59,130,246,0.1); color: #3b82f6;
+  border-radius: 10px; padding: 1px 7px;
+  font-size: 11px; font-weight: 700;
+}
+.dfg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.dfg-card {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 10px; overflow: hidden;
+  background: rgba(255,255,255,0.8);
+  transition: all 0.2s;
+}
+.dfg-card:hover {
+  border-color: rgba(59,130,246,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+}
+.dfg-thumb {
+  width: 100%; height: 80px; object-fit: cover;
+  display: block; background: #f1f5f9;
+}
+.dfg-icon {
+  width: 100%; height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; background: #f8fafc;
+}
+.dfg-card-name {
+  padding: 6px 8px 2px;
+  font-size: 11px; font-weight: 600; color: #1e293b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dfg-card-meta {
+  padding: 0 8px 6px;
+  font-size: 10px; color: #94a3b8;
+}
+.dfg-card-actions {
+  display: flex; gap: 4px;
+  padding: 4px 8px 8px;
+}
+.dfg-btn {
+  flex: 1; padding: 4px 0;
+  border-radius: 5px; border: 1px solid rgba(0,0,0,0.08);
+  font-size: 10px; font-weight: 600; cursor: pointer;
+  text-align: center; text-decoration: none;
+  background: rgba(0,0,0,0.03); color: #475569;
+  transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.dfg-btn:hover { background: rgba(0,0,0,0.07); color: #1e293b; }
+.dfg-del:hover { background: rgba(239,68,68,0.08); color: #ef4444; border-color: rgba(239,68,68,0.2); }
+
+/* ---- SÉLECTEUR DE DOSSIER ---- */
+.drive-folder-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.drive-folder-tab {
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  border: 1px solid rgba(0,0,0,0.08);
+  cursor: pointer; transition: all 0.15s;
+  background: rgba(255,255,255,0.7); color: #64748b;
+}
+.drive-folder-tab.active {
+  background: linear-gradient(135deg, #4285f4, #34a853);
+  color: white; border-color: transparent;
+  box-shadow: 0 2px 8px rgba(66,133,244,0.25);
+}
+
+/* ---- PAGE DRIVE MANAGER ---- */
+.drive-manager-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 50%, #fefce8 100%);
+  padding: 24px;
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+.drive-manager-header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 28px;
+}
+.drive-manager-logo {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc04, #ea4335);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 16px rgba(66,133,244,0.25);
+}
+.drive-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.drive-stat-card {
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px; padding: 16px;
+  backdrop-filter: blur(10px);
+}
+.drive-stat-card .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+.drive-stat-card .stat-value { font-size: 22px; font-weight: 700; color: #1e293b; margin-top: 4px; }
+.drive-stat-card .stat-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
