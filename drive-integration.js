@@ -9,8 +9,8 @@
 // ============================================================
 const DRIVE_CONFIG = {
   // 1. Créer un projet sur console.cloud.google.com
-  // 2. Activer "Google Drive API" + "Google Picker API"
-  // 3. Créer des identifiants OAuth 2.0 (type: Application Web)
+ CLIENT_ID: '744399055234-kbn613ptlpp5bk8oeoda942ssn3352mm.apps.googleusercontent.com',
+API_KEY: 'AIzaSyC6xQNkemY1HD4AuvjAIR__2VUW43JgI5Q',
   // 4. Ajouter votre domaine dans "Origines autorisées"
   CLIENT_ID: 'VOTRE_CLIENT_ID.apps.googleusercontent.com',
   API_KEY: 'VOTRE_API_KEY',
