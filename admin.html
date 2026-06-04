@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="drive-styles.css">
   <style>
     body { font-family: 'IBM Plex Sans', sans-serif; }
 
@@ -197,6 +198,9 @@
       <a href="#" class="nav-item" onclick="exportData()">
         <span>💾</span> Exporter
       </a>
+      <a href="drive-manager.html" class="nav-item" style="background:linear-gradient(135deg,rgba(66,133,244,0.15),rgba(52,168,83,0.1));color:#4285f4;border-left:3px solid #4285f4;">
+          <span>☁️</span> Google Drive
+        </a>
       <a href="#" class="nav-item" onclick="importData()">
         <span>📥</span> Importer
       </a>
@@ -665,5 +669,6 @@
     if (parcAuto) parcAuto.showToast('📱 Nouveau code OTP (démo: ' + otp + ')', 'info');
   }
 </script>
+  <script src="drive-integration.js"></script>
 </body>
 </html>
