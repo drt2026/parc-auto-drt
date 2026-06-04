@@ -719,8 +719,11 @@ function switchTab(name) {
     t.classList.toggle('active', names[i] === name);
   });
   ['browse', 'upload', 'log'].forEach(n => {
-    document.getElementById(`tab-${n}`).style.display = n === name ? '' : 'none';
+    const el = document.getElementById('tab-' + n);
+    if (el) el.style.display = n === name ? 'block' : 'none';
   });
+  if (name === 'upload') populateFolderSelect();
+  if (name === 'browse') { renderFolderChips(); renderFiles(); }
 }
 
 // ---- LOG ----
