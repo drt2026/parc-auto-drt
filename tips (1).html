@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conseils d'entretien — Parc Auto DRT Sfax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    .tips-page-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 24px 16px 100px;
+    }
+
+    .tips-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .tips-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+    }
+
+    .tips-header p {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .tips-logo {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #ef4444, #f97316, #eab308);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 16px;
+      box-shadow: 0 8px 24px rgba(239,68,68,0.2);
+    }
+
+    .tip-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px;
+      padding: 20px 20px 20px 24px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+
+    .tip-card.active {
+      transform: scale(1.02);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+
+    .tip-card.tip-1 { border-left: 4px solid #ef4444; }
+    .tip-card.tip-2 { border-left: 4px solid #f59e0b; }
+    .tip-card.tip-3 { border-left: 4px solid #10b981; }
+
+    .tip-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+    }
+
+    .tip-1 .tip-icon { background: rgba(239,68,68,0.1); }
+    .tip-2 .tip-icon { background: rgba(245,158,11,0.1); }
+    .tip-3 .tip-icon { background: rgba(16,185,129,0.1); }
+
+    .tip-content h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+    }
+
+    .tip-content p {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .voice-status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255,255,255,0.95);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .voice-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .voice-wave {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .voice-wave span {
+      display: block;
+      width: 3px;
+      background: linear-gradient(180deg, #ef4444, #f97316);
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite;
+    }
+
+    .voice-wave span:nth-child(1) { height: 8px; animation-delay: 0s; }
+    .voice-wave span:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+    .voice-wave span:nth-child(3) { height: 12px; animation-delay: 0.2s; }
+    .voice-wave span:nth-child(4) { height: 20px; animation-delay: 0.3s; }
+    .voice-wave span:nth-child(5) { height: 10px; animation-delay: 0.4s; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .voice-text {
+      font-size: 13px;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .btn-stop-voice {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-back {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      text-decoration: none;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-back:hover {
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="btn-back" onclick="stopVoice();">← Retour</a>
+
+  <div class="tips-page-container">
+    <div class="tips-header">
+      <div class="tips-logo">🔧</div>
+      <h1>Conseils d'entretien</h1>
+      <p>Parc Auto — Direction Régionale de Sfax</p>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+
+    <div class="tip-card tip-1" id="tip-card-1">
+      <div class="tip-icon">🔧</div>
+      <div class="tip-content">
+        <h3>Entretien périodique</h3>
+        <p>Respecter les échéances d'entretien du véhicule. Consulter régulièrement l'application Parc Auto pour le suivi des délais.</p>
+      </div>
+    </div>
+
+    <div class="tip-card tip-2" id="tip-card-2">
+      <div class="tip-icon">🚨</div>
+      <div class="tip-content">
+        <h3>En cas d'accident</h3>
+        <p>Informer immédiatement la hiérarchie et le chef du parc automobile. Transmettre les informations nécessaires dans les meilleurs délais.</p>
+      </div>
+    </div>
+
+    <div class="tip-card tip-3" id="tip-card-3">
+      <div class="tip-icon">⚠️</div>
+      <div class="tip-content">
+        <h3>En cas de panne ou voyant d'alerte</h3>
+        <p>Contacter immédiatement le chef du parc automobile. Ne pas utiliser le véhicule sans son autorisation. Contact : 98 230 530</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="voice-status-bar">
+    <div class="voice-indicator">
+      <div class="voice-wave" id="voice-wave">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <span class="voice-text" id="voice-status">🔊 Lecture en cours...</span>
+    </div>
+    <button class="btn-stop-voice" onclick="stopVoice()">
+      ⏹ Arrêter la voix
+    </button>
+  </div>
+
+  <script>
+    const TIPS_ITEMS = [
+      {
+        id: 'tip-card-1',
+        text: "Respecter les échéances d'entretien du véhicule. Consulter régulièrement l'application Parc Auto pour le suivi des délais.",
+        title: "Entretien périodique"
+      },
+      {
+        id: 'tip-card-2',
+        text: "En cas d'accident, informer immédiatement la hiérarchie et le chef du parc automobile. Transmettre les informations nécessaires dans les meilleurs délais.",
+        title: "En cas d'accident"
+      },
+      {
+        id: 'tip-card-3',
+        text: "En cas de panne ou de voyant d'alerte, contacter immédiatement le chef du parc automobile. Ne pas utiliser le véhicule sans son autorisation. Contact : 98, 230, 530.",
+        title: "En cas de panne"
+      }
+    ];
+
+    let currentTipIndex = 0;
+    let isSpeaking = true;
+
+    function highlightTip(index) {
+      TIPS_ITEMS.forEach((item, i) => {
+        const el = document.getElementById(item.id);
+        if (!el) return;
+        if (i === index) {
+          el.classList.add('active');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          el.classList.remove('active');
+        }
+      });
+    }
+
+    function updateProgress(index) {
+      const pct = ((index + 1) / TIPS_ITEMS.length) * 100;
+      document.getElementById('progress-fill').style.width = pct + '%';
+    }
+
+    function updateStatus(msg) {
+      document.getElementById('voice-status').textContent = msg;
+    }
+
+    function speakTip(index) {
+      if (!isSpeaking || index >= TIPS_ITEMS.length) {
+        if (index >= TIPS_ITEMS.length) {
+          updateStatus('✅ Lecture terminée');
+          document.getElementById('voice-wave').style.display = 'none';
+          highlightTip(-1);
+        }
+        return;
+      }
+
+      currentTipIndex = index;
+      highlightTip(index);
+      updateProgress(index);
+      updateStatus('🔊 Conseil ' + (index + 1) + ' sur ' + TIPS_ITEMS.length + '...');
+
+      const utter = new SpeechSynthesisUtterance(TIPS_ITEMS[index].title + '. ' + TIPS_ITEMS[index].text);
+      utter.lang = 'fr-FR';
+      utter.rate = 0.85;
+      utter.pitch = 1.1;
+
+      const voices = window.speechSynthesis.getVoices();
+      const frVoice = voices.find(v => v.lang === 'fr-FR' && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femme')))
+                   || voices.find(v => v.lang === 'fr-FR')
+                   || voices.find(v => v.lang.startsWith('fr'));
+      if (frVoice) utter.voice = frVoice;
+
+      utter.onend = () => {
+        if (isSpeaking) {
+          setTimeout(() => speakTip(index + 1), 800);
+        }
+      };
+
+      utter.onerror = () => {
+        updateStatus('⚠️ Erreur de lecture');
+      };
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    }
+
+    function stopVoice() {
+      isSpeaking = false;
+      window.speechSynthesis.cancel();
+      updateStatus('⏹ Lecture arrêtée');
+      document.getElementById('voice-wave').style.display = 'none';
+      highlightTip(-1);
+    }
+
+    // Start speaking when page loads
+    window.addEventListener('load', () => {
+      if (window.speechSynthesis) {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          speakTip(0);
+        } else {
+          window.speechSynthesis.onvoiceschanged = () => speakTip(0);
+        }
+      } else {
+        updateStatus('⚠️ Voix non supportée');
+        document.getElementById('voice-wave').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
