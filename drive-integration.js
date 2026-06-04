@@ -8,10 +8,6 @@
 // CONFIGURATION GOOGLE DRIVE
 // ============================================================
 const DRIVE_CONFIG = {
-  // 1. Créer un projet sur console.cloud.google.com
- CLIENT_ID: '744399055234-kbn613ptlpp5bk8oeoda942ssn3352mm.apps.googleusercontent.com',
-API_KEY: 'AIzaSyC6xQNkemY1HD4AuvjAIR__2VUW43JgI5Q',
-  // 4. Ajouter votre domaine dans "Origines autorisées"
   CLIENT_ID: '744399055234-kbn613ptlpp5bk8oeoda942ssn3352mm.apps.googleusercontent.com',
   API_KEY: 'AIzaSyC6xQNkemY1HD4AuvjAIR__2VUW43JgI5Q',
   SCOPES: 'https://www.googleapis.com/auth/drive',
