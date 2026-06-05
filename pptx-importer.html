@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import PPTX — Parc Auto DRT Sfax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --tt-red: #ef4444;
+      --tt-orange: #f97316;
+      --tt-green: #10b981;
+      --tt-blue: #3b82f6;
+      --tt-yellow: #eab308;
+      --bg: linear-gradient(135deg, #fff5f5 0%, #fffbeb 25%, #f0fdf4 50%, #eff6ff 75%, #faf5ff 100%);
+      --card: rgba(255,255,255,0.85);
+      --border: rgba(0,0,0,0.07);
+      --text: #1e293b;
+      --sub: #64748b;
+      --faint: #94a3b8;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .wrap { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 28px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .logo {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #ef4444, #f97316, #eab308);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 6px 20px rgba(239,68,68,0.25);
+      flex-shrink: 0;
+    }
+    .header-text h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+    .header-text p { font-size: 13px; color: var(--sub); margin-top: 3px; }
+    .back-btn {
+      margin-left: auto;
+      padding: 8px 16px; border-radius: 8px;
+      background: rgba(0,0,0,0.04); border: 1px solid var(--border);
+      color: var(--sub); font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: rgba(0,0,0,0.08); color: var(--text); }
+
+    /* ── EXPLICATION ── */
+    .info-box {
+      background: rgba(59,130,246,0.05);
+      border: 1px solid rgba(59,130,246,0.18);
+      border-radius: 12px; padding: 16px 18px;
+      margin-bottom: 20px;
+      font-size: 13px; color: #1e40af; line-height: 1.6;
+      animation: fadeUp 0.5s 0.05s ease both;
+    }
+    .info-box strong { font-weight: 700; }
+    .info-steps { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+    .info-step { display: flex; align-items: flex-start; gap: 8px; }
+    .step-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(59,130,246,0.15); color: #3b82f6;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* ── DROPZONE ── */
+    .dropzone-area {
+      border: 2px dashed rgba(239,68,68,0.3);
+      border-radius: 16px; padding: 32px 24px;
+      text-align: center;
+      background: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: all 0.25s;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s 0.1s ease both;
+    }
+    .dropzone-area:hover,
+    .dropzone-area.dragover {
+      border-color: rgba(239,68,68,0.6);
+      background: rgba(239,68,68,0.03);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(239,68,68,0.08);
+    }
+    .dz-icon { font-size: 40px; margin-bottom: 12px; }
+    .dz-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .dz-sub { font-size: 13px; color: var(--sub); }
+    .dz-browse { color: var(--tt-red); cursor: pointer; font-weight: 600; text-decoration: underline; }
+    .dz-format {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; font-weight: 600; color: #f97316;
+      margin-top: 12px; font-family: 'IBM Plex Mono', monospace;
+    }
+    #file-input { display: none; }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s 0.15s ease both;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      backdrop-filter: blur(8px);
+    }
+    .stat-label { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 2px; }
+    .stat-value.green { color: var(--tt-green); }
+    .stat-value.red   { color: var(--tt-red); }
+    .stat-value.orange { color: var(--tt-orange); }
+
+    /* ── PROGRESS LIST ── */
+    .progress-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+    .ps-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      background: rgba(0,0,0,0.02);
+      border-bottom: 1px solid var(--border);
+    }
+    .ps-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .ps-count {
+      font-size: 12px; color: var(--sub);
+      background: rgba(0,0,0,0.05); padding: 3px 10px; border-radius: 20px;
+    }
+    .ps-list { max-height: 360px; overflow-y: auto; }
+    .ps-list::-webkit-scrollbar { width: 4px; }
+    .ps-list::-webkit-scrollbar-track { background: transparent; }
+    .ps-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+
+    .ps-item {
+      display: grid;
+      grid-template-columns: 24px 1fr auto auto;
+      align-items: center; gap: 10px;
+      padding: 10px 18px;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      font-size: 12px;
+      transition: background 0.15s;
+    }
+    .ps-item:last-child { border-bottom: none; }
+    .ps-item:hover { background: rgba(0,0,0,0.02); }
+
+    .ps-status { font-size: 14px; text-align: center; }
+    .ps-name { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ps-mat {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--tt-blue);
+      background: rgba(59,130,246,0.08);
+      padding: 2px 7px; border-radius: 5px;
+      white-space: nowrap;
+    }
+    .ps-msg { font-size: 11px; color: var(--faint); text-align: right; white-space: nowrap; }
+    .ps-msg.ok  { color: var(--tt-green); }
+    .ps-msg.err { color: var(--tt-red); }
+
+    /* ── RÉSULTATS ── */
+    .result-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      margin-bottom: 20px;
+      display: none;
+      animation: fadeUp 0.4s ease both;
+    }
+    .result-section.show { display: block; }
+    .rs-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 18px;
+      background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(59,130,246,0.04));
+      border-bottom: 1px solid var(--border);
+    }
+    .rs-icon { font-size: 22px; }
+    .rs-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+    .rs-actions { display: flex; gap: 8px; }
+
+    .btn {
+      padding: 9px 18px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.2s;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      color: white;
+      box-shadow: 0 3px 12px rgba(239,68,68,0.2);
+    }
+    .btn-primary:hover { box-shadow: 0 5px 18px rgba(239,68,68,0.35); filter: brightness(1.05); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; filter: none; box-shadow: none; }
+    .btn-outline {
+      background: rgba(0,0,0,0.03); color: var(--sub);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: rgba(0,0,0,0.07); color: var(--text); }
+
+    /* ── PREVIEW TABLE ── */
+    .preview-table-wrap { overflow-x: auto; padding: 14px 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      text-align: left; padding: 8px 10px;
+      font-size: 10px; font-weight: 700; color: var(--faint);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid rgba(0,0,0,0.04); transition: background 0.1s; }
+    tbody tr:hover { background: rgba(0,0,0,0.02); }
+    tbody td { padding: 8px 10px; color: var(--text); vertical-align: top; }
+    .badge-ok   { background: rgba(16,185,129,0.1); color: #059669; border-radius: 5px; padding: 2px 7px; font-weight: 600; font-size: 10px; }
+    .badge-warn { background: rgba(245,158,11,0.1); color: #d97706; border-radius: 5px; padding: 2px 7px; font-weight: 600; font-size: 10px; }
+    .badge-err  { background: rgba(239,68,68,0.1); color: #dc2626; border-radius: 5px; padding: 2px 7px; font-weight: 600; font-size: 10px; }
+    .mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+    /* ── ACTION BAR ── */
+    .action-bar {
+      display: flex; gap: 10px; align-items: center;
+      padding: 16px 18px;
+      background: rgba(0,0,0,0.02);
+      border-top: 1px solid var(--border);
+    }
+    .action-bar .info { font-size: 12px; color: var(--sub); flex: 1; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1e293b; color: #e2e8f0;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 12px 20px;
+      font-size: 13px; white-space: nowrap;
+      transition: transform 0.3s ease;
+      z-index: 100; pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: rgba(16,185,129,0.4); }
+    #toast.error   { border-color: rgba(239,68,68,0.4); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .ps-item { grid-template-columns: 20px 1fr auto; }
+      .ps-mat { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">📂</div>
+    <div class="header-text">
+      <h1>Import PPTX — Véhicules</h1>
+      <p>Parc Auto DRT Sfax · Tunisie Telecom</p>
+    </div>
+    <a href="index.html" class="back-btn">← Retour</a>
+  </div>
+
+  <!-- INFO -->
+  <div class="info-box">
+    <strong>Comment importer vos 82 fichiers PPTX ?</strong>
+    <div class="info-steps">
+      <div class="info-step">
+        <div class="step-num">1</div>
+        <div>Glissez tous vos fichiers PPTX d'un coup (ou cliquez pour parcourir) — format attendu : <code>Ford_Figo_17-356835.pptx</code></div>
+      </div>
+      <div class="info-step">
+        <div class="step-num">2</div>
+        <div>L'application extrait automatiquement : <strong>matricule, modèle, chauffeur, km, vidange, kit chaîne, visite technique, historique interventions</strong></div>
+      </div>
+      <div class="info-step">
+        <div class="step-num">3</div>
+        <div>Vérifiez l'aperçu, puis cliquez <strong>« Enregistrer dans l'application »</strong> — les données sont ajoutées sans supprimer les véhicules existants</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DROPZONE -->
+  <div class="dropzone-area" id="dropzone">
+    <div class="dz-icon">📁</div>
+    <div class="dz-title">Glissez vos fichiers PPTX ici</div>
+    <div class="dz-sub">ou <span class="dz-browse" onclick="document.getElementById('file-input').click()">parcourez votre ordinateur</span></div>
+    <div class="dz-format">📊 .pptx · Sélection multiple supportée</div>
+    <input type="file" id="file-input" accept=".pptx" multiple>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Fichiers chargés</div>
+      <div class="stat-value" id="stat-total">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Traités avec succès</div>
+      <div class="stat-value green" id="stat-ok">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avertissements</div>
+      <div class="stat-value orange" id="stat-warn">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Erreurs</div>
+      <div class="stat-value red" id="stat-err">0</div>
+    </div>
+  </div>
+
+  <!-- PROGRESS LIST -->
+  <div class="progress-section" id="progress-section" style="display:none;">
+    <div class="ps-header">
+      <div class="ps-title">📋 Traitement des fichiers</div>
+      <div class="ps-count" id="ps-count">0 / 0</div>
+    </div>
+    <div class="ps-list" id="ps-list"></div>
+  </div>
+
+  <!-- RÉSULTATS / APERÇU -->
+  <div class="result-section" id="result-section">
+    <div class="rs-header">
+      <div class="rs-icon">✅</div>
+      <div class="rs-title">Aperçu des données extraites</div>
+      <div class="rs-actions">
+        <button class="btn btn-outline" onclick="clearAll()">🗑 Annuler</button>
+        <button class="btn btn-primary" id="save-btn" onclick="saveToApp()">
+          💾 Enregistrer dans l'application
+        </button>
+      </div>
+    </div>
+    <div class="preview-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Matricule</th>
+            <th>Modèle</th>
+            <th>Chauffeur</th>
+            <th>KM actuel</th>
+            <th>Proch. vidange</th>
+            <th>Visite tech.</th>
+            <th>Interventions</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+    </div>
+    <div class="action-bar">
+      <div class="info" id="action-info">— véhicules prêts à être enregistrés</div>
+      <button class="btn btn-primary" id="save-btn2" onclick="saveToApp()">
+        💾 Enregistrer dans l'application
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast">Traitement en cours...</div>
+
+<script>
+// ============================================================
+//  PARC AUTO DRT — IMPORT PPTX
+//  Extrait les données des fiches véhicule depuis des fichiers
+//  .pptx et les injecte dans localStorage (parcAutoData_v3)
+// ============================================================
+
+const STORAGE_KEY = 'parcAutoData_v3';
+let parsedVehicles = [];
+let parsedRepairs  = [];
+let fileQueue = [];
+
+// ── DRAG & DROP ──────────────────────────────────────────────
+const dz = document.getElementById('dropzone');
+const fi = document.getElementById('file-input');
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  handleFiles([...e.dataTransfer.files]);
+});
+dz.addEventListener('click', () => fi.click());
+fi.addEventListener('change', () => handleFiles([...fi.files]));
+
+// ── GESTION DES FICHIERS ──────────────────────────────────────
+function handleFiles(files) {
+  const pptxFiles = files.filter(f => f.name.toLowerCase().endsWith('.pptx'));
+  if (!pptxFiles.length) { toast('Aucun fichier .pptx trouvé', 'error'); return; }
+
+  clearAll(true);
+  fileQueue = pptxFiles;
+
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('stat-total').textContent = pptxFiles.length;
+
+  const list = document.getElementById('ps-list');
+  list.innerHTML = '';
+
+  // Créer les lignes de liste
+  pptxFiles.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'ps-item';
+    row.id = `ps-row-${i}`;
+    row.innerHTML = `
+      <div class="ps-status" id="ps-icon-${i}">⏳</div>
+      <div class="ps-name">${f.name}</div>
+      <div class="ps-mat" id="ps-mat-${i}">—</div>
+      <div class="ps-msg" id="ps-msg-${i}">En attente...</div>
+    `;
+    list.appendChild(row);
+  });
+
+  // Traiter en série
+  processQueue(pptxFiles, 0);
+}
+
+async function processQueue(files, index) {
+  if (index >= files.length) {
+    finalize();
+    return;
+  }
+
+  document.getElementById('ps-count').textContent = `${index + 1} / ${files.length}`;
+  document.getElementById(`ps-icon-${index}`).textContent = '⚙️';
+  document.getElementById(`ps-msg-${index}`).textContent  = 'Lecture...';
+  document.getElementById(`ps-msg-${index}`).className    = 'ps-msg';
+
+  try {
+    const result = await parsePPTX(files[index]);
+    document.getElementById(`ps-icon-${index}`).textContent = result.warn ? '⚠️' : '✅';
+    document.getElementById(`ps-mat-${index}`).textContent  = result.vehicle.matricule || '?';
+    document.getElementById(`ps-msg-${index}`).textContent  = result.warn || 'OK';
+    document.getElementById(`ps-msg-${index}`).className    = `ps-msg ${result.warn ? 'warn' : 'ok'}`;
+
+    parsedVehicles.push(result.vehicle);
+    parsedRepairs.push(...result.repairs);
+
+    const ok   = parseInt(document.getElementById('stat-ok').textContent)   + (result.warn ? 0 : 1);
+    const warn = parseInt(document.getElementById('stat-warn').textContent)  + (result.warn ? 1 : 0);
+    document.getElementById('stat-ok').textContent   = ok;
+    document.getElementById('stat-warn').textContent = warn;
+
+  } catch(err) {
+    document.getElementById(`ps-icon-${index}`).textContent = '❌';
+    document.getElementById(`ps-msg-${index}`).textContent  = 'Erreur: ' + err.message.substring(0, 40);
+    document.getElementById(`ps-msg-${index}`).className    = 'ps-msg err';
+    const errCount = parseInt(document.getElementById('stat-err').textContent) + 1;
+    document.getElementById('stat-err').textContent = errCount;
+  }
+
+  // Suivant (léger délai pour ne pas bloquer l'UI)
+  setTimeout(() => processQueue(files, index + 1), 20);
+}
+
+// ── PARSEUR PPTX ─────────────────────────────────────────────
+async function parsePPTX(file) {
+  const zip = await JSZip.loadAsync(file);
+
+  // Lire tous les slides
+  const slideKeys = Object.keys(zip.files)
+    .filter(k => /^ppt\/slides\/slide\d+\.xml$/.test(k))
+    .sort((a, b) => {
+      const na = parseInt(a.match(/\d+/)[0]);
+      const nb = parseInt(b.match(/\d+/)[0]);
+      return na - nb;
+    });
+
+  const slidesText = [];
+  for (const key of slideKeys) {
+    const xml = await zip.files[key].async('string');
+    slidesText.push(xmlToText(xml));
+  }
+
+  // Extraire les données de chaque slide
+  const vehicle = extractVehicle(slidesText, file.name);
+  const repairs = extractRepairs(slidesText, vehicle.matricule);
+  const warn    = !vehicle.matricule ? 'Matricule non trouvé' :
+                  !vehicle.km        ? 'KM non trouvé'        : null;
+
+  return { vehicle, repairs, warn };
+}
+
+function xmlToText(xml) {
+  // Extraire tout le texte des balises <a:t>
+  const matches = xml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || [];
+  return matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
+}
+
+function extractVehicle(slides, filename) {
+  const allText = slides.join('\n');
+
+  // ── Matricule ──
+  // Depuis le nom du fichier : Ford_Figo_17-356835.pptx → 17-356835
+  let matricule = '';
+  const fnMatch = filename.match(/(\d{1,3}-\d{5,6})(?:\.pptx)?$/i);
+  if (fnMatch) matricule = fnMatch[1];
+  if (!matricule) {
+    const m = allText.match(/\b(\d{1,3}[\s\-]\d{5,6})\b/);
+    if (m) matricule = m[1].replace(/\s+/g, '-');
+  }
+
+  // ── Modèle ── (Slide 1 : "FORD\n\nFIGO")
+  const slide1 = slides[0] || '';
+  let modele = '';
+  const marques = ['FORD','PEUGEOT','RENAULT','HYUNDAI','VOLKSWAGEN','FIAT',
+                   'TOYOTA','NISSAN','KIA','SEAT','SKODA','DACIA','OPEL','CHEVROLET'];
+  for (const m of marques) {
+    if (slide1.toUpperCase().includes(m)) {
+      // chercher la ligne suivante comme sous-modèle
+      const re = new RegExp(m + '[\\s]+([A-Z][A-Z0-9]+)', 'i');
+      const sub = slide1.toUpperCase().match(re);
+      modele = sub ? m.charAt(0) + m.slice(1).toLowerCase() + ' ' +
+                     sub[1].charAt(0) + sub[1].slice(1).toLowerCase()
+                   : m.charAt(0) + m.slice(1).toLowerCase();
+      break;
+    }
+  }
+  // Fallback : depuis nom de fichier Brand_Model_XXX.pptx
+  if (!modele) {
+    const parts = filename.replace('.pptx','').split('_');
+    if (parts.length >= 2) modele = parts.slice(0, 2).join(' ');
+  }
+
+  // ── Chauffeur ──
+  let chauffeur = '';
+  const chMatch = allText.match(/(?:UTILISATEUR[^\n]*|chauffeur[^\n]*|Conducteur[^\n]*)\s+(?:Mr\.?\s+)?([A-ZÀ-Ÿ][a-zA-ZÀ-ÿ\s\-]+(?:[A-ZÀ-Ÿ][a-zA-ZÀ-ÿ]+))/);
+  if (chMatch) chauffeur = chMatch[1].trim();
+  // Depuis la slide 1 : ligne "Mr. Prénom NOM"
+  if (!chauffeur) {
+    const mrMatch = slide1.match(/Mr\.?\s+([A-ZÀ-Ÿa-zà-ÿ]+ [A-ZÀ-Ÿa-zà-ÿ]+)/);
+    if (mrMatch) {
+      // souvent deux Mr sur le slide, prendre le 2ème (utilisateur)
+      const allMr = [...slide1.matchAll(/Mr\.?\s+([A-ZÀ-Ÿa-zà-ÿ]+ [A-ZÀ-Ÿa-zà-ÿ]+)/g)];
+      chauffeur = allMr.length >= 2 ? allMr[1][1] : allMr[0][1];
+    }
+  }
+
+  // ── KM actuel ── (DERNIÈRE VIDANGE km = km à ce moment → on prend le km le plus élevé)
+  const kmNums = [];
+  const slide3 = slides[2] || '';
+  // KM explicite dans slide 3
+  const kmMatches = [...slide3.matchAll(/(\d{3}[\s]\d{3}|\d{6}|\d{5,6})\s*km/gi)];
+  for (const m of kmMatches) kmNums.push(parseInt(m[1].replace(/\s/g, '')));
+  // Plus haut dans l'historique
+  const histText = slides.slice(3).join('\n');
+  const histKm = [...histText.matchAll(/^\s*(\d{5,6})\b/gm)];
+  for (const m of histKm) kmNums.push(parseInt(m[1]));
+
+  const km = kmNums.length ? Math.max(...kmNums) : 0;
+
+  // ── Prochaine Vidange ──
+  let prochaineVidange = null;
+  const pvMatch = slide3.match(/PROCHAINE\s+VIDANGE[\s\S]{0,30}?(\d{3}[\s]\d{3}|\d{5,6})\s*km/i);
+  if (pvMatch) prochaineVidange = parseInt(pvMatch[1].replace(/\s/g, ''));
+
+  // ── Prochain Kit Chaîne ──
+  let prochaineChaine = null;
+  const pcMatch = slide3.match(/PROCHAIN(?:E)?\s+KIT\s+CHA[IÎ]NE[\s\S]{0,30}?(\d{3}[\s]\d{3}|\d{5,6})\s*km/i);
+  if (pcMatch) prochaineChaine = parseInt(pcMatch[1].replace(/\s/g, ''));
+
+  // ── Visite Technique ──
+  let prochaineVisite = null;
+  const vtMatch = allText.match(/VISITE\s+TECHNIQUE\s+[ÉE]CH[ÉE]ANCE\s*[:\-]?\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/i);
+  if (vtMatch) {
+    // Convertir dd-mm-yyyy → yyyy-mm-dd
+    const parts = vtMatch[1].split(/[-\/]/);
+    if (parts.length === 3) {
+      const [d, mo, y] = parts;
+      prochaineVisite = `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+  }
+
+  // ── Affectation ──
+  let affectation = '';
+  const affMatch = slide1.match(/(?:AFFECTATION|Division|Direction|Service)\s+([A-ZÀ-Ÿa-zà-ÿ\s]+?)(?:\s{2,}|$)/i);
+  if (affMatch) affectation = affMatch[1].trim();
+
+  return {
+    id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    matricule,
+    modele: modele.trim(),
+    chauffeur: chauffeur.trim(),
+    affectation,
+    km,
+    prochaineVidange,
+    prochaineChaine,
+    prochaineVisite,
+    statut: 'actif',
+    carteGrise: { recto: null, verso: null }
+  };
+}
+
+function extractRepairs(slides, matricule) {
+  const repairs = [];
+  // Slides 4+ contiennent l'historique
+  const histSlides = slides.slice(3);
+  for (const slide of histSlides) {
+    if (!slide.includes('HISTORIQUE') && !slide.includes('km')) continue;
+    // Regex : lignes de la forme "227962 DÉSIGNATION 26-01-2026 1 354,326"
+    const lines = slide.split(/\s{2,}|\n/);
+    let currentKm = null;
+    for (const line of lines) {
+      const kmMatch = line.match(/^(\d{5,6})$/);
+      if (kmMatch) { currentKm = parseInt(kmMatch[1]); continue; }
+
+      // Ligne intervention : km DÉSIGNATION date qté montant
+      const intMatch = line.match(/(\d{5,6})?\s+([A-ZÉÈÀÙÇ][A-ZÉÈÀÙÇ\s\-\/]+?)\s+(\d{2}-\d{2}-\d{4})\s+(\d+)\s+([\d,]+)/);
+      if (intMatch) {
+        const kmInt = intMatch[1] ? parseInt(intMatch[1]) : (currentKm || 0);
+        const desig = intMatch[2].trim();
+        const dateRaw = intMatch[3];
+        const montant = parseFloat(intMatch[5].replace(',', '.'));
+        // Convertir date
+        const dparts = dateRaw.split('-');
+        const dateISO = dparts.length === 3
+          ? `${dparts[2]}-${dparts[1]}-${dparts[0]}`
+          : dateRaw;
+
+        repairs.push({
+          id: 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          matricule,
+          chauffeur: '',
+          type: 'Maintenance',
+          designation: desig,
+          date: dateISO,
+          km: kmInt,
+          montant: isNaN(montant) ? 0 : montant
+        });
+      }
+    }
+  }
+  return repairs;
+}
+
+// ── FINALISATION ─────────────────────────────────────────────
+function finalize() {
+  const total = parsedVehicles.length;
+  const ok    = parseInt(document.getElementById('stat-ok').textContent);
+
+  if (total === 0) {
+    toast('Aucun véhicule extrait', 'error');
+    return;
+  }
+
+  document.getElementById('ps-count').textContent = `${total} / ${total}`;
+  buildPreview();
+  document.getElementById('result-section').classList.add('show');
+  document.getElementById('action-info').textContent =
+    `${total} véhicule${total > 1 ? 's' : ''} prêt${total > 1 ? 's' : ''} à être enregistré${total > 1 ? 's' : ''}`;
+  toast(`✅ ${total} véhicule(s) traité(s)`, 'success');
+}
+
+function buildPreview() {
+  const tbody = document.getElementById('preview-tbody');
+  tbody.innerHTML = parsedVehicles.map(v => {
+    const repCount = parsedRepairs.filter(r => r.matricule === v.matricule).length;
+    let statut = '';
+    if (!v.matricule) statut = '<span class="badge-err">Matricule manquant</span>';
+    else if (!v.km)   statut = '<span class="badge-warn">KM manquant</span>';
+    else              statut = '<span class="badge-ok">OK</span>';
+
+    return `<tr>
+      <td class="mono">${v.matricule || '—'}</td>
+      <td>${v.modele || '—'}</td>
+      <td>${v.chauffeur || '—'}</td>
+      <td>${v.km ? v.km.toLocaleString() + ' km' : '—'}</td>
+      <td>${v.prochaineVidange ? v.prochaineVidange.toLocaleString() + ' km' : '—'}</td>
+      <td>${v.prochaineVisite || '—'}</td>
+      <td style="text-align:center;">${repCount > 0 ? `<span class="badge-ok">${repCount}</span>` : '—'}</td>
+      <td>${statut}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ENREGISTREMENT ────────────────────────────────────────────
+function saveToApp() {
+  if (!parsedVehicles.length) return;
+
+  try {
+    // Charger données existantes
+    let appData = { vehicles: [], repairs: [] };
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.vehicles) appData = parsed;
+    }
+
+    let added = 0, updated = 0;
+
+    for (const v of parsedVehicles) {
+      if (!v.matricule) continue;
+      const idx = appData.vehicles.findIndex(
+        x => x.matricule.replace(/[\s-]/g,'') === v.matricule.replace(/[\s-]/g,'')
+      );
+      if (idx >= 0) {
+        // Fusionner : conserver carte grise existante
+        const existingCG = appData.vehicles[idx].carteGrise;
+        appData.vehicles[idx] = { ...v, id: appData.vehicles[idx].id };
+        if (existingCG) appData.vehicles[idx].carteGrise = existingCG;
+        updated++;
+      } else {
+        appData.vehicles.push(v);
+        added++;
+      }
+    }
+
+    // Ajouter réparations (dédupliquées par matricule + date + désignation)
+    for (const r of parsedRepairs) {
+      const dup = appData.repairs.find(
+        x => x.matricule === r.matricule && x.date === r.date && x.designation === r.designation
+      );
+      if (!dup) appData.repairs.push(r);
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+
+    toast(`✅ ${added} ajouté(s), ${updated} mis à jour — Données enregistrées !`, 'success');
+
+    document.getElementById('save-btn').disabled  = true;
+    document.getElementById('save-btn2').disabled = true;
+    document.getElementById('save-btn').textContent  = '✅ Enregistré';
+    document.getElementById('save-btn2').textContent = '✅ Enregistré';
+    document.getElementById('action-info').textContent =
+      `✅ ${added} véhicule(s) ajouté(s), ${updated} mis à jour dans l'application`;
+
+    setTimeout(() => {
+      if (confirm(`Données enregistrées !\n${added} ajouté(s), ${updated} mis à jour.\n\nVoulez-vous retourner à l'application ?`)) {
+        window.location.href = 'index.html';
+      }
+    }, 800);
+
+  } catch(err) {
+    toast('Erreur: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+// ── UTILITAIRES ───────────────────────────────────────────────
+function clearAll(keepUI = false) {
+  parsedVehicles = [];
+  parsedRepairs  = [];
+  fileQueue      = [];
+  if (!keepUI) {
+    document.getElementById('progress-section').style.display = 'none';
+    document.getElementById('result-section').classList.remove('show');
+    document.getElementById('ps-list').innerHTML = '';
+    document.getElementById('preview-tbody').innerHTML = '';
+    ['stat-total','stat-ok','stat-warn','stat-err'].forEach(id => {
+      document.getElementById(id).textContent = '0';
+    });
+    document.getElementById('save-btn').disabled  = false;
+    document.getElementById('save-btn2').disabled = false;
+    document.getElementById('save-btn').textContent  = '💾 Enregistrer dans l\'application';
+    document.getElementById('save-btn2').textContent = '💾 Enregistrer dans l\'application';
+    fi.value = '';
+  }
+}
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = type ? `show ${type}` : 'show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 4500);
+}
+</script>
+</body>
+</html>
