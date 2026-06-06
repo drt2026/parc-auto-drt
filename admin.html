@@ -579,7 +579,20 @@
 
 <script src="app.js"></script>
 <script>
-  if (!checkAdmin()) { /* Redirection gérée dans checkAdmin */ }
+  // Vérification admin synchrone sur localStorage brut (avant init async)
+  (function() {
+    try {
+      const raw = localStorage.getItem('parcAutoData_v3');
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && d.currentUser && d.currentUser.role === 'admin') return; // OK
+      }
+      // Pas de session admin valide → retour accueil
+      window.location.replace('index.html');
+    } catch(e) {
+      window.location.replace('index.html');
+    }
+  })();
 
   // Mobile sidebar
   function toggleSidebar() {
