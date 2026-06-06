@@ -1779,4 +1779,3 @@ function exportCSV() {
   URL.revokeObjectURL(url);
   parcAuto.showToast('Export CSV réussi — Ouvrira dans Excel', 'success');
 }
-
