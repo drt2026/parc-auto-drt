@@ -1,3 +1,4 @@
+Le contenu est généré par les utilisateurs et non vérifié.
 /* ============================================
    PARC AUTO DRT SFAX - LOGIQUE JAVASCRIPT
    AVEC SYNCHRONISATION CLOUD VIA CLOUDFLARE WORKER
@@ -216,35 +217,50 @@ class ParcAutoApp {
   // CHARGEMENT / SAUVEGARDE
   // ============================================
   async loadData() {
-    // Essayer d'abord le cloud
+    // Lire localStorage d'abord (référence locale)
+    let localData = null;
+    try {
+      const saved = localStorage.getItem('parcAutoData_v3');
+      if (saved) localData = JSON.parse(saved);
+    } catch (e) {
+      console.warn('Erreur chargement localStorage:', e);
+    }
+
+    // Essayer le cloud
     if (this.isCloudConfigured()) {
-      // Sync toast hidden: this.showToast('☁️ Connexion au cloud...', 'info');
       const cloudData = await this.readFromCloud();
 
       if (cloudData && cloudData.vehicles) {
+        // Préférer la version la plus récente (timestamp _lastSaved)
+        const cloudTs = cloudData._lastSaved || 0;
+        const localTs = localData ? (localData._lastSaved || 0) : 0;
+
+        if (localTs > cloudTs) {
+          console.log('Local plus récent que cloud — utilisation du local');
+          this.isCloudSync = true;
+          // Re-pousser le local vers le cloud en arrière-plan
+          this.data = localData;
+          this.writeToCloud().catch(() => {});
+          return localData;
+        }
+
         this.isCloudSync = true;
-        // Sync toast hidden: this.showToast('✅ Données synchronisées depuis le cloud', 'success');
         return cloudData;
-      } else {
-        // Sync toast hidden: this.showToast('⚠️ Cloud indisponible, mode local', 'warning');
       }
     }
 
-    // Fallback sur localStorage
-    try {
-      const saved = localStorage.getItem('parcAutoData_v3');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return { ...DEFAULT_DATA, ...parsed };
-      }
-    } catch (e) {
-      console.warn('Erreur chargement localStorage:', e);
+    // Fallback localStorage
+    if (localData) {
+      return { ...DEFAULT_DATA, ...localData };
     }
 
     return JSON.parse(JSON.stringify(DEFAULT_DATA));
   }
 
   async saveData() {
+    // Horodatage pour résoudre les conflits cloud/local
+    this.data._lastSaved = Date.now();
+
     // 1. Sauvegarder IMMÉDIATEMENT en local (jamais bloqué)
     try {
       localStorage.setItem('parcAutoData_v3', JSON.stringify(this.data));
@@ -258,10 +274,9 @@ class ParcAutoApp {
       this.writeToCloud()
         .then(success => {
           this.showSyncStatus(success ? 'synced' : 'error');
+          if (!success) console.warn('Sync cloud échouée — données conservées en local');
         })
-        .catch(() => {
-          this.showSyncStatus('error');
-        });
+        .catch(() => { this.showSyncStatus('error'); });
     } else {
       this.showSyncStatus('synced');
     }
@@ -442,9 +457,9 @@ class ParcAutoApp {
   initForms() {
     const vehicleForm = document.getElementById('vehicle-form');
     if (vehicleForm) {
-      vehicleForm.addEventListener('submit', (e) => {
+      vehicleForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        this.saveVehicle();
+        await this.saveVehicle();
       });
     }
 
