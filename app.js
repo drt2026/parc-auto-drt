@@ -760,58 +760,58 @@ class ParcAutoApp {
     modal.classList.add('active');
   }
 
-  async saveVehicle() {
-  try {
-    const id = document.getElementById('vehicle-id')?.value || '';
-    const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
-    const modele = document.getElementById('vehicle-modele')?.value?.trim() || '';
-    if (!matricule) {
-      this.showToast('⚠️ Matricule obligatoire', 'error');
-      document.getElementById('vehicle-matricule')?.focus();
-      return;
-    }
-    if (!modele) {
-      this.showToast('⚠️ Modèle obligatoire', 'error');
-      document.getElementById('vehicle-modele')?.focus();
-      return;
-    }
-    const kmVal = parseInt(document.getElementById('vehicle-km')?.value) || 0;
-    if (kmVal > 999999) {
-      this.showToast('Kilométrage incohérent (max 999 999 km)', 'error');
-      return;
-    }
-    const vehicle = {
-      id: id || 'v' + Date.now(),
-      matricule: matricule.toUpperCase(),
-      modele: modele,
-      chauffeur: document.getElementById('vehicle-chauffeur').value.trim(),
-      whatsappChauffeur: document.getElementById('vehicle-whatsapp').value.replace(/\D/g,'').trim() || null,
-      km: kmVal,
-      prochaineVidange: parseInt(document.getElementById('vehicle-vidange').value) || null,
-      prochaineChaine: parseInt(document.getElementById('vehicle-chaine').value) || null,
-      prochaineVisite: document.getElementById('vehicle-visite').value || null,
-      dateChangementBatterie: document.getElementById('vehicle-batterie-date').value || null,
-      indexBatterie: document.getElementById('vehicle-batterie-index').value.trim() || null,
-      dateChangementPneus: document.getElementById('vehicle-pneus-date').value || null,
-      statut: 'actif'
-    };
+    async saveVehicle() {
+    try {
+      const id = document.getElementById('vehicle-id')?.value || '';
+      const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
+      const modele = document.getElementById('vehicle-modele')?.value?.trim() || '';
+      if (!matricule) {
+        this.showToast('⚠️ Matricule obligatoire', 'error');
+        document.getElementById('vehicle-matricule')?.focus();
+        return;
+      }
+      if (!modele) {
+        this.showToast('⚠️ Modèle obligatoire', 'error');
+        document.getElementById('vehicle-modele')?.focus();
+        return;
+      }
+      const kmVal = parseInt(document.getElementById('vehicle-km')?.value) || 0;
+      if (kmVal > 999999) {
+        this.showToast('Kilométrage incohérent (max 999 999 km)', 'error');
+        return;
+      }
+      const vehicle = {
+        id: id || 'v' + Date.now(),
+        matricule: matricule.toUpperCase(),
+        modele: modele,
+        chauffeur: document.getElementById('vehicle-chauffeur').value.trim(),
+        whatsappChauffeur: document.getElementById('vehicle-whatsapp').value.replace(/\D/g,'').trim() || null,
+        km: kmVal,
+        prochaineVidange: parseInt(document.getElementById('vehicle-vidange').value) || null,
+        prochaineChaine: parseInt(document.getElementById('vehicle-chaine').value) || null,
+        prochaineVisite: document.getElementById('vehicle-visite').value || null,
+        dateChangementBatterie: document.getElementById('vehicle-batterie-date').value || null,
+        indexBatterie: document.getElementById('vehicle-batterie-index').value.trim() || null,
+        dateChangementPneus: document.getElementById('vehicle-pneus-date').value || null,
+        statut: 'actif'
+      };
 
-    if (id) {
-      const index = this.data.vehicles.findIndex(v => v.id === id);
-      if (index !== -1) this.data.vehicles[index] = vehicle;
-    } else {
-      this.data.vehicles.push(vehicle);
-    }
+      if (id) {
+        const index = this.data.vehicles.findIndex(v => v.id === id);
+        if (index !== -1) this.data.vehicles[index] = vehicle;
+      } else {
+        this.data.vehicles.push(vehicle);
+      }
 
-    await this.saveData();
-    this.renderAll();
-    closeModal('vehicle-modal');
-    this.showToast(id ? 'Véhicule modifié avec succès' : 'Véhicule ajouté avec succès', 'success');
-  } catch (error) {
-    console.error('Erreur saveVehicle:', error);
-    this.showToast('❌ Erreur lors de l\'enregistrement: ' + error.message, 'error');
+      await this.saveData();
+      this.renderAll();
+      closeModal('vehicle-modal');
+      this.showToast(id ? 'Véhicule modifié avec succès' : 'Véhicule ajouté avec succès', 'success');
+    } catch (error) {
+      console.error('Erreur saveVehicle:', error);
+      this.showToast('❌ Erreur lors de l\'enregistrement: ' + error.message, 'error');
+    }
   }
-}
 
   editVehicle(id) {
     this.openVehicleModal(id);
