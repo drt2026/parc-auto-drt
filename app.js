@@ -760,7 +760,8 @@ class ParcAutoApp {
     modal.classList.add('active');
   }
 
-  async saveVehicle() {
+  aasync saveVehicle() {
+  try {
     const id = document.getElementById('vehicle-id')?.value || '';
     const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
     const modele = document.getElementById('vehicle-modele')?.value?.trim() || '';
@@ -1813,4 +1814,8 @@ function exportCSV() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   parcAuto.showToast('Export CSV réussi — Ouvrira dans Excel', 'success');
+}  } catch (error) {
+    console.error('Erreur saveVehicle:', error);
+    this.showToast('❌ Erreur: ' + error.message, 'error');
+  }
 }
