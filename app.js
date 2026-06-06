@@ -760,7 +760,7 @@ class ParcAutoApp {
     modal.classList.add('active');
   }
 
-    async saveVehicle() {
+     async saveVehicle() {
     try {
       const id = document.getElementById('vehicle-id')?.value || '';
       const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
