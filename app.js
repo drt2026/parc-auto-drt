@@ -560,7 +560,7 @@ class ParcAutoApp {
     const alerts = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const settings = this.data.settings;
+    const settings = this.data.settings || { alerteVidange: 1000, alerteChaine: 1000, alerteVisite: 7 };
 
     this.data.vehicles.forEach(v => {
       if (v.prochaineVidange && v.km >= v.prochaineVidange - settings.alerteVidange) {
