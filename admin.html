@@ -514,7 +514,7 @@
       <button class="modal-close" onclick="closeModal('vehicle-modal')">✕</button>
     </div>
     <div class="modal-body">
-      <form id="vehicle-form">
+      <form id="vehicle-form" onsubmit="return false;">
         <input type="hidden" id="vehicle-id">
         <div class="form-row">
           <div class="form-group">
@@ -570,7 +570,7 @@
         </div>
         <div class="modal-footer" style="padding:16px 0 0;border:none;">
           <button type="button" class="btn btn-secondary" onclick="closeModal('vehicle-modal')">Annuler</button>
-          <button type="button" class="btn btn-primary" onclick="parcAuto && parcAuto.saveVehicle()">💾 Enregistrer</button>
+          <button type="button" class="btn btn-primary" onclick="if(window.parcAuto){window.parcAuto.saveVehicle();}">💾 Enregistrer</button>
         </div>
       </form>
     </div>
