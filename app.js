@@ -760,57 +760,52 @@ class ParcAutoApp {
     modal.classList.add('active');
   }
 
-    async saveVehicle() {
-    try {
-      const id = document.getElementById('vehicle-id')?.value || '';
-      const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
-      const modele = document.getElementById('vehicle-modele')?.value?.trim() || '';
-      if (!matricule) {
-        this.showToast('⚠️ Matricule obligatoire', 'error');
-        document.getElementById('vehicle-matricule')?.focus();
-        return;
-      }
-      if (!modele) {
-        this.showToast('⚠️ Modèle obligatoire', 'error');
-        document.getElementById('vehicle-modele')?.focus();
-        return;
-      }
-      const kmVal = parseInt(document.getElementById('vehicle-km')?.value) || 0;
-      if (kmVal > 999999) {
-        this.showToast('Kilométrage incohérent (max 999 999 km)', 'error');
-        return;
-      }
-      const vehicle = {
-        id: id || 'v' + Date.now(),
-        matricule: matricule.toUpperCase(),
-        modele: modele,
-        chauffeur: document.getElementById('vehicle-chauffeur').value.trim(),
-        whatsappChauffeur: document.getElementById('vehicle-whatsapp').value.replace(/\D/g,'').trim() || null,
-        km: kmVal,
-        prochaineVidange: parseInt(document.getElementById('vehicle-vidange').value) || null,
-        prochaineChaine: parseInt(document.getElementById('vehicle-chaine').value) || null,
-        prochaineVisite: document.getElementById('vehicle-visite').value || null,
-        dateChangementBatterie: document.getElementById('vehicle-batterie-date').value || null,
-        indexBatterie: document.getElementById('vehicle-batterie-index').value.trim() || null,
-        dateChangementPneus: document.getElementById('vehicle-pneus-date').value || null,
-        statut: 'actif'
-      };
-
-      if (id) {
-        const index = this.data.vehicles.findIndex(v => v.id === id);
-        if (index !== -1) this.data.vehicles[index] = vehicle;
-      } else {
-        this.data.vehicles.push(vehicle);
-      }
-
-      await this.saveData();
-      this.renderAll();
-      closeModal('vehicle-modal');
-      this.showToast(id ? 'Véhicule modifié avec succès' : 'Véhicule ajouté avec succès', 'success');
-    } catch (error) {
-      console.error('Erreur saveVehicle:', error);
-      this.showToast('❌ Erreur lors de l\'enregistrement: ' + error.message, 'error');
+  async saveVehicle() {
+    const id = document.getElementById('vehicle-id')?.value || '';
+    const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
+    const modele = document.getElementById('vehicle-modele')?.value?.trim() || '';
+    if (!matricule) {
+      this.showToast('⚠️ Matricule obligatoire', 'error');
+      document.getElementById('vehicle-matricule')?.focus();
+      return;
     }
+    if (!modele) {
+      this.showToast('⚠️ Modèle obligatoire', 'error');
+      document.getElementById('vehicle-modele')?.focus();
+      return;
+    }
+    const kmVal = parseInt(document.getElementById('vehicle-km')?.value) || 0;
+    if (kmVal > 999999) {
+      this.showToast('Kilométrage incohérent (max 999 999 km)', 'error');
+      return;
+    }
+    const vehicle = {
+      id: id || 'v' + Date.now(),
+      matricule: matricule.toUpperCase(),
+      modele: modele,
+      chauffeur: document.getElementById('vehicle-chauffeur').value.trim(),
+      whatsappChauffeur: document.getElementById('vehicle-whatsapp').value.replace(/\D/g,'').trim() || null,
+      km: kmVal,
+      prochaineVidange: parseInt(document.getElementById('vehicle-vidange').value) || null,
+      prochaineChaine: parseInt(document.getElementById('vehicle-chaine').value) || null,
+      prochaineVisite: document.getElementById('vehicle-visite').value || null,
+      dateChangementBatterie: document.getElementById('vehicle-batterie-date').value || null,
+      indexBatterie: document.getElementById('vehicle-batterie-index').value.trim() || null,
+      dateChangementPneus: document.getElementById('vehicle-pneus-date').value || null,
+      statut: 'actif'
+    };
+
+    if (id) {
+      const index = this.data.vehicles.findIndex(v => v.id === id);
+      if (index !== -1) this.data.vehicles[index] = vehicle;
+    } else {
+      this.data.vehicles.push(vehicle);
+    }
+
+    await this.saveData();
+    this.renderAll();
+    closeModal('vehicle-modal');
+    this.showToast(id ? 'Véhicule modifié avec succès' : 'Véhicule ajouté avec succès', 'success');
   }
 
   editVehicle(id) {
@@ -1476,60 +1471,118 @@ function checkAndNotifyAlerts() {
     const data = JSON.parse(raw);
     const today = new Date(); today.setHours(0,0,0,0);
     const settings = data.settings || { alerteVidange: 1000, alerteChaine: 1000, alerteVisite: 7 };
-    let urgentCount = 0;
-    const messages = [];
+
+    let totalAlerts = 0;
+    const allMessages = [];
 
     (data.vehicles || []).forEach(v => {
       const vAlerts = [];
 
-      if (v.prochaineVidange && v.km >= v.prochaineVidange - settings.alerteVidange) {
+      // 1. Vidange
+      if (v.prochaineVidange && v.km) {
         const rest = v.prochaineVidange - v.km;
-        urgentCount++;
-        const msg = `Vidange ${rest <= 0 ? 'DÉPASSÉE de ' + Math.abs(rest) + ' km' : 'dans ' + rest + ' km'}`;
-        messages.push(`${v.matricule}: ${msg}`);
-        vAlerts.push(msg);
+        if (rest <= settings.alerteVidange) {
+          totalAlerts++;
+          const msg = `Vidange ${rest <= 0 ? 'DÉPASSÉE de ' + Math.abs(rest) + ' km' : 'dans ' + rest + ' km'}`;
+          messages.push(`${v.matricule}: ${msg}`);
+          vAlerts.push(msg);
+        }
       }
-      if (v.prochaineChaine && v.km >= v.prochaineChaine - settings.alerteChaine) {
+
+      // 2. Kit Chaîne
+      if (v.prochaineChaine && v.km) {
         const rest = v.prochaineChaine - v.km;
-        urgentCount++;
-        const msg = `Kit chaîne ${rest <= 0 ? 'DÉPASSÉE de ' + Math.abs(rest) + ' km' : 'dans ' + rest + ' km'}`;
-        messages.push(`${v.matricule}: ${msg}`);
-        vAlerts.push(msg);
+        if (rest <= settings.alerteChaine) {
+          totalAlerts++;
+          const msg = `Kit chaîne ${rest <= 0 ? 'DÉPASSÉE de ' + Math.abs(rest) + ' km' : 'dans ' + rest + ' km'}`;
+          messages.push(`${v.matricule}: ${msg}`);
+          vAlerts.push(msg);
+        }
       }
+
+      // 3. Visite Technique
       if (v.prochaineVisite) {
         const d = new Date(v.prochaineVisite); d.setHours(0,0,0,0);
         const days = Math.ceil((d - today) / 86400000);
         if (days <= settings.alerteVisite) {
-          urgentCount++;
+          totalAlerts++;
           const msg = `Visite technique ${days < 0 ? 'DÉPASSÉE de ' + Math.abs(days) + ' j' : 'dans ' + days + ' j'}`;
           messages.push(`${v.matricule}: ${msg}`);
           vAlerts.push(msg);
         }
       }
+
+      // 4. Batterie (> 24 mois)
       if (v.dateChangementBatterie) {
         const months = (today - new Date(v.dateChangementBatterie)) / (1000*60*60*24*30);
-        if (months >= 24) { vAlerts.push(`Batterie: ${Math.floor(months)} mois sans remplacement`); urgentCount++; }
-      }
-      if (v.dateChangementPneus) {
-        const months = (today - new Date(v.dateChangementPneus)) / (1000*60*60*24*30);
-        if (months >= 12) { vAlerts.push(`Pneus: ${Math.floor(months)} mois sans remplacement`); urgentCount++; }
+        if (months >= 24) { vAlerts.push(`Batterie: ${Math.floor(months)} mois sans remplacement`); totalAlerts++; }
       }
 
-      // Envoi automatique WhatsApp au chauffeur si numéro enregistré
-      if (vAlerts.length > 0 && v.whatsappChauffeur) {
-        autoSendWhatsAppToChauffeur(v, vAlerts, today);
+      // 5. Pneus (> 12 mois)
+      if (v.dateChangementPneus) {
+        const months = (today - new Date(v.dateChangementPneus)) / (1000*60*60*24*30);
+        if (months >= 12) { vAlerts.push(`Pneus: ${Math.floor(months)} mois sans remplacement`); totalAlerts++; }
+      }
+
+      // ENVOI AUTOMATIQUE WHATSAPP
+      if (vAlerts.length > 0) {
+        // Envoyer au chauffeur si numéro enregistré
+        if (v.whatsappChauffeur) {
+          autoSendWhatsAppToChauffeur(v, vAlerts, today);
+        }
+
+        // Envoyer aussi au chef de parc (toujours)
+        sendWhatsAppAlertToChef(v, vAlerts, today);
       }
     });
 
-    if (urgentCount > 0 && Notification.permission === 'granted') {
+    if (totalAlerts > 0 && Notification.permission === 'granted') {
       new Notification('🚨 Parc Auto DRT Sfax', {
-        body: `${urgentCount} alerte(s) active(s)\n${messages.slice(0,3).join('\n')}`,
+        body: `${totalAlerts} alerte(s) active(s)\n${messages.slice(0,3).join('\n')}`,
         icon: 'icon-192.png',
         badge: 'icon-192.png',
         tag: 'parc-alert'
       });
     }
-  } catch(e) { console.warn('Notification error:', e); }
+  } catch(e) { 
+    console.warn('Notification error:', e); 
+  }
+}
+
+// ============================================
+// ENVOI WHATSAPP AU CHEF DE PARC (toujours)
+// ============================================
+function sendWhatsAppAlertToChef(vehicle, alerts, today) {
+  const dedupeKey = `wa_chef_${vehicle.matricule}_${today.toISOString().split('T')[0]}`;
+
+  if (localStorage.getItem(dedupeKey)) return;
+
+  const dateStr = today.toLocaleDateString('fr-FR');
+  const alertLines = alerts.map(a => `⚠️ ${a}`).join('\n');
+
+  const msg = `🚨 *ALERTE CHEF DE PARC — DRT SFAX*
+
+📌 Véhicule : *${vehicle.matricule}*
+🚙 Modèle : ${vehicle.modele}
+👤 Chauffeur : ${vehicle.chauffeur || 'N/A'}
+📱 WhatsApp chauffeur : ${vehicle.whatsappChauffeur || 'Non enregistré'}
+📍 KM actuel : ${(vehicle.km || 0).toLocaleString()} km
+📅 Date : ${dateStr}
+
+⚠️ *ALERTES DÉTECTÉES :*
+${alertLines}
+
+🔴 *Action requise : contacter le chauffeur et planifier l'intervention.*
+
+_Parc Auto DRT Sfax — Tunisie Telecom_`;
+
+  const phone = '21698230530';  // Numéro du chef de parc
+  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+
+  window.open(waUrl, '_blank');
+  localStorage.setItem(dedupeKey, '1');
+
+  console.log(`✅ WhatsApp envoyé au chef de parc pour ${vehicle.matricule}`);
 }
 
 function autoSendWhatsAppToChauffeur(vehicle, alerts, today) {
