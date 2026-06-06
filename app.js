@@ -752,31 +752,28 @@ class ParcAutoApp {
   }
 
   async saveVehicle() {
-    const id = document.getElementById('vehicle-id').value;
-
-    // Validation manuelle des champs obligatoires
-    const matricule = document.getElementById('vehicle-matricule').value.trim();
-    const modele = document.getElementById('vehicle-modele').value.trim();
+    const id = document.getElementById('vehicle-id')?.value || '';
+    const matricule = document.getElementById('vehicle-matricule')?.value?.trim() || '';
+    const modele = document.getElementById('vehicle-modele')?.value?.trim() || '';
     if (!matricule) {
-      this.showToast('⚠️ Le matricule est obligatoire', 'error');
-      document.getElementById('vehicle-matricule').focus();
+      this.showToast('⚠️ Matricule obligatoire', 'error');
+      document.getElementById('vehicle-matricule')?.focus();
       return;
     }
     if (!modele) {
-      this.showToast('⚠️ Le modèle est obligatoire', 'error');
-      document.getElementById('vehicle-modele').focus();
+      this.showToast('⚠️ Modèle obligatoire', 'error');
+      document.getElementById('vehicle-modele')?.focus();
       return;
     }
-
-    const kmVal = parseInt(document.getElementById('vehicle-km').value) || 0;
+    const kmVal = parseInt(document.getElementById('vehicle-km')?.value) || 0;
     if (kmVal > 999999) {
       this.showToast('Kilométrage incohérent (max 999 999 km)', 'error');
       return;
     }
     const vehicle = {
       id: id || 'v' + Date.now(),
-      matricule: document.getElementById('vehicle-matricule').value.trim().toUpperCase(),
-      modele: document.getElementById('vehicle-modele').value.trim(),
+      matricule: matricule.toUpperCase(),
+      modele: modele,
       chauffeur: document.getElementById('vehicle-chauffeur').value.trim(),
       whatsappChauffeur: document.getElementById('vehicle-whatsapp').value.replace(/\D/g,'').trim() || null,
       km: kmVal,
