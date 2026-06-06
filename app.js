@@ -1,4 +1,3 @@
-Le contenu est généré par les utilisateurs et non vérifié.
 /* ============================================
    PARC AUTO DRT SFAX - LOGIQUE JAVASCRIPT
    AVEC SYNCHRONISATION CLOUD VIA CLOUDFLARE WORKER
