@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parc Auto — Tunisie Telecom</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f97316">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Parc DRT">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="drive-styles.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: 'IBM Plex Sans', sans-serif; }
+
+    .home-page {
+      background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .home-page::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridScroll 20s linear infinite;
+    }
+    .home-page::after {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(239,68,68,0.08) 0%, rgba(245,158,11,0.05) 25%, rgba(16,185,129,0.05) 50%, rgba(59,130,246,0.08) 75%, transparent 100%);
+      pointer-events: none;
+    }
+    @keyframes gridScroll {
+      0%   { background-position: 0 0; }
+      100% { background-position: 48px 48px; }
+    }
+    .home-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.6);
+      backdrop-filter: blur(24px);
+      border-radius: 20px;
+      padding: 28px 28px 20px;
+      max-width: 480px;
+      width: 92%;
+      position: relative; z-index: 1;
+      animation: cardIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(32px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tt-logo-wrap {
+      display: flex; align-items: center; gap: 14px;
+      justify-content: center; margin-bottom: 6px;
+    }
+    .tt-logo-badge {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #ef4444 0%, #f97316 30%, #eab308 60%, #22c55e 100%);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(239,68,68,0.2);
+      font-size: 24px; flex-shrink: 0;
+    }
+    .tt-logo-text h1 { font-size: 20px; font-weight: 700; color: #1e293b; letter-spacing: -0.3px; margin-bottom: 1px; }
+    .tt-logo-text .tt-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      background: linear-gradient(90deg, #ef4444, #f97316, #22c55e, #3b82f6, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px; text-transform: uppercase; font-weight: 600;
+    }
+    .home-divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239,68,68,0.2), rgba(245,158,11,0.2), rgba(59,130,246,0.2), transparent);
+      margin: 16px 0;
+    }
+    .home-subtitle {
+      font-size: 12px; color: #64748b;
+      text-align: center; margin-bottom: 16px;
+      text-transform: uppercase; letter-spacing: 2px;
+    }
+    .role-buttons { display: flex; flex-direction: column; gap: 10px; }
+    .role-btn {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 14px;
+      padding: 14px 16px; border-radius: 12px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(0,0,0,0.06);
+      cursor: pointer; transition: all 0.25s ease;
+      text-align: left; color: inherit; width: 100%;
+    }
+    .role-btn:hover {
+      background: rgba(255,255,255,0.95);
+      border-color: rgba(239,68,68,0.25);
+      transform: translateX(4px);
+      box-shadow: -4px 0 0 0 #ef4444, 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .role-btn-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .admin-btn .role-btn-icon { background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(249,115,22,0.12)); }
+    .user-btn  .role-btn-icon { background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(168,85,247,0.12)); }
+    .role-btn-text { flex: 1 !important; text-align: left !important; }
+    .role-title { display: block; font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 2px; }
+    .role-desc  { display: block; font-size: 11px; color: #64748b; }
+    .role-arrow { color: #94a3b8; font-size: 18px; transition: transform 0.2s; flex-shrink: 0; }
+    .role-btn:hover .role-arrow { transform: translateX(4px); color: #ef4444; }
+    .home-footer { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); text-align: center; }
+    .home-footer p { font-size: 10px; color: #94a3b8; letter-spacing: 0.5px; }
+
+    /* LOGIN */
+    .login-page { background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%); position: relative; overflow: hidden; }
+    .login-page::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.6);
+      backdrop-filter: blur(24px);
+      border-radius: 20px; padding: 44px 40px;
+      max-width: 420px; position: relative; z-index: 1;
+      animation: cardIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .login-card .logo-section h2 { color: #1e293b; }
+    .login-card .subtitle { color: #64748b; }
+    .login-card .form-label { color: #475569; }
+    .login-card .form-control { background: #ffffff; border-color: #e2e8f0; color: #1e293b; }
+    .login-card .form-control:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.12); background: #ffffff; }
+    .login-card .form-control::placeholder { color: #94a3b8; }
+    .login-card .btn-primary { background: linear-gradient(135deg, #ef4444, #f97316); box-shadow: 0 4px 16px rgba(239,68,68,0.2); }
+    .login-card .btn-primary:hover { background: linear-gradient(135deg, #f87171, #fb923c); box-shadow: 0 6px 20px rgba(239,68,68,0.3); }
+    .login-card .back-btn { color: #64748b; }
+    .login-card .back-btn:hover { background: rgba(0,0,0,0.04); color: #1e293b; }
+    .login-card .demo-info { background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.12); color: #64748b; }
+    .login-card .logo-circle { background: linear-gradient(135deg, #ef4444, #f97316, #eab308); box-shadow: 0 6px 20px rgba(239,68,68,0.2); }
+
+    /* User interface */
+    .user-header-bar { background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+    .user-header-left h3 { color: #1e293b; }
+    .logo-mini { background: linear-gradient(135deg, #ef4444, #f97316, #eab308); }
+
+    /* ===== CHOICE PAGE ===== */
+    .choice-page {
+      background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%);
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .choice-page::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .choice-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.6);
+      backdrop-filter: blur(24px);
+      border-radius: 20px;
+      padding: 36px 32px 28px;
+      max-width: 520px;
+      width: 92%;
+      position: relative; z-index: 1;
+      animation: cardIn 0.6s cubic-bezier(0.16,1,0.3,1) both;
+      text-align: center;
+    }
+    .choice-welcome {
+      font-size: 15px;
+      color: #64748b;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .choice-matricule {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+    }
+    .choice-vehicle {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .choice-divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(239,68,68,0.2), rgba(245,158,11,0.2), rgba(59,130,246,0.2), transparent);
+      margin: 20px 0 24px;
+    }
+    .choice-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .choice-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 480px) {
+      .choice-buttons { grid-template-columns: 1fr; }
+    }
+    .choice-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 28px 20px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(0,0,0,0.06);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+    .choice-btn:hover {
+      background: rgba(255,255,255,0.95);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .choice-btn.tips-btn:hover {
+      border-color: rgba(59,130,246,0.3);
+      box-shadow: 0 8px 24px rgba(59,130,246,0.12), 0 0 0 1px rgba(59,130,246,0.1);
+    }
+    .choice-btn.history-btn:hover {
+      border-color: rgba(239,68,68,0.3);
+      box-shadow: 0 8px 24px rgba(239,68,68,0.12), 0 0 0 1px rgba(239,68,68,0.1);
+    }
+    .choice-btn-icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+    .tips-btn .choice-btn-icon {
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(168,85,247,0.12));
+    }
+    .history-btn .choice-btn-icon {
+      background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(249,115,22,0.12));
+    }
+    .choice-btn-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .choice-btn-desc {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    .choice-back {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .choice-back-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .choice-back-btn:hover {
+      background: rgba(0,0,0,0.04);
+      color: #1e293b;
+    }
+
+    /* ===== TIPS PAGE ===== */
+    .tips-page {
+      background: linear-gradient(135deg, #fff5f5 0%, #fffbeb 20%, #f0fdf4 40%, #eff6ff 60%, #faf5ff 80%, #fdf2f8 100%);
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+    .tips-page::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(239,68,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .tips-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .tips-header {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(24px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .tips-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .tips-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .tips-header p {
+      font-size: 12px;
+      color: #64748b;
+    }
+    .tips-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(24px);
+      animation: cardIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .tips-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tips-card-title .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .tips-card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .tips-card li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      font-size: 13px;
+      color: #475569;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+    .tips-card li:last-child {
+      border-bottom: none;
+    }
+    .tips-card li::before {
+      content: '✓';
+      color: #10b981;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .tips-card li.warning::before {
+      content: '⚠️';
+      color: #f59e0b;
+    }
+    .tips-card li.danger::before {
+      content: '🚨';
+      color: #ef4444;
+    }
+    .tips-card li.info::before {
+      content: '💡';
+      color: #3b82f6;
+    }
+    .tips-footer-bar {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px;
+      padding: 16px 24px;
+      margin-top: 20px;
+      backdrop-filter: blur(24px);
+      text-align: center;
+    }
+  
+    .fuel-btn .choice-btn-icon {
+      background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.12));
+    }
+    .choice-btn.fuel-btn:hover {
+      border-color: rgba(16,185,129,0.3);
+      box-shadow: 0 8px 24px rgba(16,185,129,0.12), 0 0 0 1px rgba(16,185,129,0.1);
+    }
+
+    /* ---- INDEX EDIT MODAL ---- */
+    .index-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .index-modal-overlay.open { display: flex; }
+    .index-modal {
+      background: white; border-radius: 20px; padding: 28px 24px;
+      width: 90%; max-width: 360px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+      animation: modalIn 0.25s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.9) translateY(20px); }
+      to   { opacity:1; transform: scale(1) translateY(0); }
+    }
+    .index-modal h3 { font-size:16px; font-weight:700; color:#1e293b; margin-bottom:6px; }
+    .index-modal .im-sub { font-size:12px; color:#64748b; margin-bottom:20px; }
+    .index-modal .im-current {
+      background: rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.2);
+      border-radius:10px; padding:12px 14px; margin-bottom:16px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .index-modal .im-current-label { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+    .index-modal .im-current-val { font-size:20px; font-weight:800; color:#059669; font-family:'IBM Plex Mono',monospace; }
+    .index-modal input[type=number] {
+      width:100%; padding:12px 14px; border-radius:10px;
+      border:2px solid rgba(16,185,129,0.3); font-size:18px;
+      font-family:'IBM Plex Mono',monospace; font-weight:700;
+      color:#1e293b; outline:none; text-align:center;
+      transition: border-color 0.2s;
+      margin-bottom:16px;
+    }
+    .index-modal input[type=number]:focus { border-color:#10b981; }
+    .index-modal .im-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .im-btn-cancel {
+      padding:12px; border-radius:10px; border:1px solid rgba(0,0,0,0.1);
+      background:rgba(0,0,0,0.04); color:#64748b; font-weight:600;
+      font-size:13px; cursor:pointer;
+    }
+    .im-btn-save {
+      padding:12px; border-radius:10px; border:none;
+      background:linear-gradient(135deg,#10b981,#059669); color:white;
+      font-weight:700; font-size:13px; cursor:pointer;
+      box-shadow:0 4px 12px rgba(16,185,129,0.3);
+    }
+    .im-btn-save:hover { filter:brightness(1.05); }
+    .im-warning { font-size:11px; color:#f59e0b; text-align:center; margin-bottom:12px; }
+
+    /* ---- FUEL PAGE ---- */
+    .fuel-page {
+      display: none;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0f9ff 100%);
+      padding: 16px;
+    }
+    .fuel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .fuel-header-left { display: flex; align-items: center; gap: 12px; }
+    .fuel-logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 12px rgba(16,185,129,0.25);
+    }
+    .fuel-header h2 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
+    .fuel-header p { font-size: 11px; color: #64748b; margin: 2px 0 0; }
+    .fuel-header-btns { display: flex; gap: 8px; }
+
+    .fuel-vehicle-card {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(16,185,129,0.15);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .fuel-vehicle-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .fuel-matricule-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px; font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, #10b981, #059669);
+      padding: 6px 14px; border-radius: 8px;
+    }
+    .fuel-marque { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .fuel-division { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    .fuel-kpis {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+      margin-bottom: 14px;
+    }
+    @media(min-width: 480px) { .fuel-kpis { grid-template-columns: repeat(4, 1fr); } }
+    .fuel-kpi {
+      background: rgba(16,185,129,0.05);
+      border: 1px solid rgba(16,185,129,0.12);
+      border-radius: 10px; padding: 12px;
+      text-align: center;
+    }
+    .fuel-kpi-value {
+      font-size: 20px; font-weight: 800; color: #059669;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .fuel-kpi-label { font-size: 10px; color: #64748b; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .fuel-index-table {
+      width: 100%; border-collapse: collapse; font-size: 12px;
+    }
+    .fuel-index-table th {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white; padding: 8px 10px;
+      text-align: left; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .fuel-index-table th:first-child { border-radius: 8px 0 0 0; }
+    .fuel-index-table th:last-child { border-radius: 0 8px 0 0; }
+    .fuel-index-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      color: #334155;
+    }
+    .fuel-index-table tr:last-child td { border-bottom: none; }
+    .fuel-index-table tr:nth-child(even) td { background: rgba(16,185,129,0.03); }
+
+    .taux-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .taux-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+    .taux-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+    .taux-ok .taux-bar-fill { background: linear-gradient(90deg, #10b981, #34d399); }
+    .taux-warn .taux-bar-fill { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .taux-high .taux-bar-fill { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .taux-val { font-size: 12px; font-weight: 700; min-width: 40px; text-align: right; }
+    .taux-ok .taux-val { color: #10b981; }
+    .taux-warn .taux-val { color: #f59e0b; }
+    .taux-high .taux-val { color: #ef4444; }
+
+    .fuel-obs {
+      margin-top: 10px; padding: 8px 12px;
+      background: rgba(249,115,22,0.07);
+      border-left: 3px solid #f97316;
+      border-radius: 0 8px 8px 0;
+      font-size: 12px; color: #92400e;
+    }
+    .fuel-not-found {
+      text-align: center; padding: 48px 24px;
+      color: #94a3b8;
+    }
+    .fuel-not-found .nf-icon { font-size: 48px; margin-bottom: 12px; }
+    .fuel-not-found p { font-size: 14px; }
+
+  </style>
+</head>
+<body>
+
+  <!-- PAGE D'ACCUEIL -->
+  <div id="home-page" class="home-page">
+    <div class="home-card">
+      <div class="tt-logo-wrap">
+        <div class="tt-logo-badge">🚗</div>
+        <div class="tt-logo-text">
+          <h1>Parc Auto</h1>
+          <span class="tt-tag">Tunisie Telecom</span>
+          <div style="font-size:11px;color:#64748b;margin-top:4px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;">Direction Régionale de Sfax</div>
+        </div>
+      </div>
+
+      <div class="home-divider"></div>
+
+      <div class="role-buttons">
+        <button class="role-btn admin-btn" onclick="showLogin('admin')">
+          <div class="role-btn-icon">🔐</div>
+          <div class="role-btn-text">
+            <span class="role-title">Espace Administrateur</span>
+            <span class="role-desc">Gestion complète du parc</span>
+          </div>
+          <span class="role-arrow">›</span>
+        </button>
+
+        <button class="role-btn user-btn" onclick="showLogin('user')">
+          <div class="role-btn-icon">👤</div>
+          <div class="role-btn-text">
+            <span class="role-title">Espace Utilisateur</span>
+            <span class="role-desc">Consulter mon véhicule</span>
+          </div>
+          <span class="role-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="home-footer">
+        <p>© 2026 Tunisie Telecom — Tous droits réservés</p>
+        <p style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;">
+          <span style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:white;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.5px;">✦ Créateur</span>
+          <strong style="color:#64748b;font-size:12px;font-weight:700;">Hamdi Ben Aouicha</strong>
+          <span style="color:#64748b;font-size:12px;">— Chef de Parc DRT Sfax</span>
+        </p>
+      </div>
+      <button onclick="logout()" style="margin-top:16px;width:100%;padding:10px 16px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);background:linear-gradient(135deg,#fee2e2,#fecaca);color:#991b1b;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='linear-gradient(135deg,#fecaca,#fca5a5)'" onmouseout="this.style.background='linear-gradient(135deg,#fee2e2,#fecaca)'">
+        🚪 Déconnexion
+      </button>
+    </div>
+  </div>
+
+  <!-- LOGIN ADMIN -->
+  <div id="login-admin" class="login-page" style="display:none;">
+    <div class="login-card">
+      <button class="back-btn" onclick="goHome()">← Retour</button>
+      <div class="logo-section" style="margin-bottom:24px;text-align:center;">
+        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;margin:0 auto 16px;">
+          <span>🔐</span>
+        </div>
+        <h2>Administration</h2>
+        <p class="subtitle">Accès réservé aux administrateurs</p>
+        
+      </div>
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="admin-email" required placeholder="admin@drt.tn">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input type="password" class="form-control" id="admin-password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:8px;">
+          🔐 &nbsp;Connexion
+        </button>
+      </form>
+      <p style="margin-top:16px;text-align:center;font-size:10px;color:#cbd5e1;">Parc Auto DRT Sfax — <strong style="color:#cbd5e1;font-weight:600;">Hamdi Ben Aouicha</strong></p>
+    </div>
+  </div>
+
+  <!-- LOGIN UTILISATEUR -->
+  <div id="login-user" class="login-page" style="display:none;">
+    <div class="login-card">
+      <button class="back-btn" onclick="goHome()">← Retour</button>
+      <div class="logo-section" style="margin-bottom:24px;text-align:center;">
+        <div class="logo-circle" style="width:56px;height:56px;font-size:24px;margin:0 auto 16px;">
+          <span>👤</span>
+        </div>
+        <h2>Consulter mon véhicule</h2>
+        <p class="subtitle">Entrez votre matricule pour accéder</p>
+        
+      </div>
+      <form id="user-login-form">
+        <div class="form-group">
+          <label class="form-label">Matricule du véhicule</label>
+          <input type="text" class="form-control" id="user-matricule" required
+                 placeholder="Ex: 17-XXXXXX" style="text-transform:uppercase;letter-spacing:1px;"
+                 oninput="formatMatricule(this)" maxlength="9"
+                 autocomplete="off" autocorrect="off" spellcheck="false">
+          <small style="color:#94a3b8;font-size:11px;margin-top:4px;display:block;">Format: 17-XXXXXX (le tiret s'ajoute automatiquement)</small>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:8px;">
+          🔍 &nbsp;Rechercher mon véhicule
+        </button>
+      </form>
+      <p style="margin-top:16px;text-align:center;font-size:10px;color:#cbd5e1;">Parc Auto DRT Sfax — <strong style="color:#cbd5e1;font-weight:600;">Hamdi Ben Aouicha</strong></p>
+    </div>
+  </div>
+
+  <!-- ===== PAGE DE CHOIX (nouvelle) ===== -->
+  <div id="user-choice-page" class="choice-page" style="display:none;">
+    <div class="choice-card">
+      <div class="tt-logo-wrap" style="margin-bottom:20px;">
+        <div class="tt-logo-badge">🚗</div>
+        <div class="tt-logo-text">
+          <h1 style="font-size:18px;">Parc Auto</h1>
+          <span class="tt-tag">Tunisie Telecom</span>
+        </div>
+      </div>
+
+      <div class="choice-buttons">
+        <button class="choice-btn tips-btn" onclick="goToTips()">
+          <div class="choice-btn-icon">🔧</div>
+          <div class="choice-btn-title">Conseils</div>
+        </button>
+
+        <button class="choice-btn history-btn" onclick="goToHistory()">
+          <div class="choice-btn-icon">📋</div>
+          <div class="choice-btn-title">Mon Véhicule</div>
+        </button>
+
+        <button class="choice-btn fuel-btn" onclick="goToFuel()" style="grid-column: 1 / -1;">
+          <div class="choice-btn-icon">⛽</div>
+          <div class="choice-btn-title">Carburant &amp; Index</div>
+          <div class="choice-btn-desc" style="font-size:11px;color:#64748b;">Situation mai 2026</div>
+        </button>
+      </div>
+
+      <div class="choice-back">
+        <button class="choice-back-btn" onclick="goBackToLogin()">← Retour à la connexion</button>
+      </div>
+
+      <div class="home-footer" style="margin-top:20px;">
+        <p style="font-size:10px;color:#94a3b8;letter-spacing:0.5px;">© 2026 Tunisie Telecom — Tous droits réservés</p>
+        <p style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;">
+          <strong style="color:#64748b;font-size:12px;font-weight:700;">Hamdi Ben Aouicha</strong>
+          <span style="color:#94a3b8;font-size:12px;">— Chef de Parc</span>
+        </p>
+      </div>
+      <button onclick="logout()" style="margin-top:14px;width:100%;padding:10px 16px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);background:linear-gradient(135deg,#fee2e2,#fecaca);color:#991b1b;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.background='linear-gradient(135deg,#fecaca,#fca5a5)'" onmouseout="this.style.background='linear-gradient(135deg,#fee2e2,#fecaca)'">
+        🚪 Déconnexion
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== PAGE CONSEILS (nouvelle) ===== -->
+  <div id="tips-page" class="tips-page" style="display:none;">
+    <div class="tips-container">
+      <div class="tips-header">
+        <div class="tips-header-left">
+          <div class="logo-mini" style="width:40px;height:40px;font-size:20px;">🔧</div>
+          <div>
+            <h2>Conseils d'Entretien</h2>
+            <p>Parc Auto DRT Sfax</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" id="tts-btn" onclick="toggleTips TTS()" style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2);">🔊 Écouter</button>
+          <button class="btn btn-secondary btn-sm" onclick="goBackFromTips()" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2);">← Retour</button>
+          <button class="btn btn-secondary btn-sm" onclick="logout()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;font-weight:700;">🚪 Déconnexion</button>
+        </div>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.1s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(249,115,22,0.12));">🛢️</div>
+          Huile moteur
+        </div>
+        <ul>
+          <li>Vérifier le niveau <strong>tous les 1 000 km</strong></li>
+          <li class="warning">Vidange tous les <strong>10 000 km</strong></li>
+          <li class="danger">Niveau critique = arrêt immédiat</li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.15s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(59,130,246,0.12));">🔄</div>
+          Distribution
+        </div>
+        <ul>
+          <li>Vérifier tous les <strong>20 000 km</strong></li>
+          <li class="warning">Remplacer entre <strong>60 000 – 120 000 km</strong></li>
+          <li class="danger">Rupture courroie = casse moteur irréversible</li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.2s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(239,68,68,0.12));">🛞</div>
+          Pneus
+        </div>
+        <ul>
+          <li>Pression à vérifier <strong>toutes les 2 semaines</strong></li>
+          <li class="warning">Remplacer si usure &lt; 1,6 mm</li>
+          <li>Permutation avant/arrière tous les <strong>10 000 km</strong></li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.25s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(168,85,247,0.12));">🧊</div>
+          Refroidissement
+        </div>
+        <ul>
+          <li>Niveau à vérifier <strong>chaque mois</strong></li>
+          <li class="warning">Remplacement tous les <strong>2 ans / 40 000 km</strong></li>
+          <li class="danger">Température anormale = arrêt immédiat</li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.3s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(34,197,94,0.12));">🛑</div>
+          Freins
+        </div>
+        <ul>
+          <li>Plaquettes à vérifier tous les <strong>10 000 km</strong></li>
+          <li class="warning">Remplacer si épaisseur &lt; 3 mm</li>
+          <li class="danger">Grincement ou vibration = inspection immédiate</li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.35s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(236,72,153,0.12));">🔋</div>
+          Batterie
+        </div>
+        <ul>
+          <li>Vérifier les bornes (oxydation)</li>
+          <li class="warning">Durée de vie : <strong>3 à 5 ans</strong></li>
+          <li class="info">Démarrage difficile = tester batterie + alternateur</li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.4s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(14,165,233,0.12),rgba(59,130,246,0.12));">📋</div>
+          Visite Technique
+        </div>
+        <ul>
+          <li class="warning">Respecter impérativement la date limite</li>
+          <li>Conserver le procès-verbal dans le véhicule</li>
+          <li class="danger">Sans visite valide = amende + immobilisation</li>
+        </ul>
+      </div>
+
+      <div class="tips-card" style="animation-delay:0.45s;">
+        <div class="tips-card-title">
+          <div class="icon" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(234,179,8,0.12));">⚡</div>
+          Conduite Économique
+        </div>
+        <ul>
+          <li>Accélérations progressives, freinages anticipés</li>
+          <li>Couper le moteur si arrêt &gt; 30 secondes</li>
+          <li class="info">80–90 km/h = consommation optimale</li>
+        </ul>
+      </div>
+
+      <div class="tips-footer-bar">
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px;">
+          <strong style="color:#64748b;font-size:12px;font-weight:700;">Hamdi Ben Aouicha</strong> — Chef de Parc DRT Sfax
+        </p>
+        <p style="font-size:11px;color:#94a3b8;">© 2026 Tunisie Telecom — Direction Régionale de Sfax</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // TTS conseils courts
+  let _ttsActive = false;
+  let _ttsUtterance = null;
+  const _tipsTexts = [
+    "Huile moteur : vérifier le niveau tous les mille kilomètres. Vidange tous les dix mille kilomètres.",
+    "Distribution : vérifier tous les vingt mille kilomètres. Remplacer entre soixante et cent vingt mille kilomètres.",
+    "Pneus : contrôler la pression toutes les deux semaines. Permutation avant arrière tous les dix mille kilomètres.",
+    "Refroidissement : vérifier le niveau chaque mois. Remplacement tous les deux ans.",
+    "Freins : vérifier les plaquettes tous les dix mille kilomètres. Tout grincement nécessite une inspection immédiate.",
+    "Batterie : durée de vie trois à cinq ans. En cas de démarrage difficile, tester la batterie.",
+    "Visite technique : respecter impérativement la date limite.",
+    "Conduite : accélérations progressives. Quatre-vingt à quatre-vingt-dix kilomètres heure pour une consommation optimale."
+  ];
+  function toggleTipsTTS() {
+    if (_ttsActive) {
+      window.speechSynthesis.cancel();
+      _ttsActive = false;
+      document.getElementById('tts-btn').textContent = '🔊 Écouter';
+      return;
+    }
+    _ttsActive = true;
+    document.getElementById('tts-btn').textContent = '⏹ Arrêter';
+    const fullText = _tipsTexts.join(' ');
+    _ttsUtterance = new SpeechSynthesisUtterance(fullText);
+    _ttsUtterance.lang = 'fr-FR';
+    _ttsUtterance.rate = 1.1;
+    _ttsUtterance.onend = () => {
+      _ttsActive = false;
+      const btn = document.getElementById('tts-btn');
+      if (btn) btn.textContent = '🔊 Écouter';
+    };
+    window.speechSynthesis.speak(_ttsUtterance);
+  }
+  // Fix onclick typo
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('tts-btn');
+    if (btn) btn.onclick = toggleTipsTTS;
+  });
+  </script>
+
+  <!-- INTERFACE UTILISATEUR -->
+  <div id="user-interface" style="display:none;">
+    <div class="user-header-bar">
+      <div class="user-header-left">
+        <div class="logo-mini">🚗</div>
+        <div>
+          <h3>Parc Auto TT</h3>
+          <span class="sync-mini">🔄 Synchronisé</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-secondary btn-sm" onclick="goBackToChoice()" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2);">← Retour</button>
+        <button class="btn btn-secondary btn-sm" onclick="logout()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;font-weight:700;">🚪 Déconnexion</button>
+      </div>
+    </div>
+    <div class="user-container">
+      <div id="user-vehicle-detail"></div>
+
+    </div>
+  </div>
+
+  <script>
+    // Inline navigation functions for immediate access
+    function showLogin(type) {
+      document.getElementById('home-page').style.display = 'none';
+      if (type === 'admin') {
+        document.getElementById('login-admin').style.display = 'flex';
+      } else {
+        document.getElementById('login-user').style.display = 'flex';
+      }
+    }
+    function formatMatricule(input) {
+      let val = input.value.replace(/[^0-9]/g, ''); // Keep only digits
+      if (val.length > 2) {
+        val = val.slice(0, 2) + '-' + val.slice(2, 8);
+      }
+      input.value = val;
+    }
+
+    // ===== NEW CHOICE PAGE FUNCTIONS =====
+    function showChoicePage(matricule, vehicle) {
+      // Hide login
+      document.getElementById('login-user').style.display = 'none';
+      // Show choice page
+      document.getElementById('user-choice-page').style.display = 'flex';
+      // Populate info (avec vérification pour éviter les erreurs)
+      var matDisplay = document.getElementById('choice-matricule-display');
+      var vehInfo = document.getElementById('choice-vehicle-info');
+      var welcomeText = document.getElementById('choice-welcome-text');
+      if (matDisplay) matDisplay.textContent = matricule || '';
+      if (vehInfo && vehicle) vehInfo.textContent = (vehicle.modele || '') + ' — ' + (vehicle.chauffeur || 'Chauffeur non assigné');
+      if (welcomeText) welcomeText.textContent = 'Bienvenue';
+      // Store selected vehicle for later - IMPORTANT
+      window._selectedVehicle = vehicle;
+      window._selectedMatricule = matricule;
+      console.log('showChoicePage: vehicle stocké =', vehicle ? vehicle.id : 'null', ', matricule =', matricule);
+    }
+
+    function stopTipsTTS() {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      _ttsActive = false;
+      const btn = document.getElementById('tts-btn');
+      if (btn) btn.textContent = '🔊 Ecouter';
+    }
+
+    function goToTips() {
+      document.getElementById('user-choice-page').style.display = 'none';
+      document.getElementById('tips-page').style.display = 'block';
+    }
+
+    function goBackFromTips() {
+      stopTipsTTS();
+      document.getElementById('tips-page').style.display = 'none';
+      document.getElementById('user-choice-page').style.display = 'flex';
+    }
+
+    function goToHistory() {
+      stopTipsTTS();
+      document.getElementById('user-choice-page').style.display = 'none';
+      document.getElementById('user-interface').style.display = 'block';
+      if (parcAuto) {
+        parcAuto.renderUserVehicleDetail();
+        parcAuto.startAutoSync();
+      }
+      // Lire les alertes vocalement - FIX: filtrage par vehicle.id
+      setTimeout(() => {
+        try {
+          if (!parcAuto) {
+            console.warn('goToHistory: parcAuto non disponible');
+            return;
+          }
+
+          const vehicle = window._selectedVehicle;
+          const mat = window._selectedMatricule;
+
+          console.log('=== goToHistory TTS ===');
+          console.log('Vehicle stocké:', vehicle ? vehicle.id : 'NULL');
+          console.log('Matricule stocké:', mat);
+
+          const allAlerts = parcAuto.getAlerts();
+          console.log('Total alertes dans le système:', allAlerts.length);
+
+          let userAlerts = [];
+          if (vehicle && vehicle.id) {
+            // CORRECTION: filtrer par ID (fiable) au lieu de matricule
+            userAlerts = allAlerts.filter(a => a.vehicle && a.vehicle.id === vehicle.id);
+            console.log('Alertes FILTRÉES par vehicle.id:', userAlerts.length);
+          } else if (mat) {
+            // Fallback par matricule si pas d'objet vehicle
+            userAlerts = allAlerts.filter(a => a.vehicle && a.vehicle.matricule === mat);
+            console.log('Alertes filtrées par matricule (fallback):', userAlerts.length);
+          } else {
+            console.warn('Aucun véhicule ni matricule stocké!');
+          }
+
+          console.log('Alertes à vocaliser:', userAlerts.length);
+          userAlerts.forEach((a, i) => console.log('  ' + (i+1) + '. ' + a.type + ': ' + a.detail));
+
+          if (userAlerts.length > 0) {
+            parcAuto.speakAlerts(userAlerts);
+          } else {
+            console.log('Aucune alerte à vocaliser pour ce véhicule');
+          }
+        } catch(e) {
+          console.error('goToHistory TTS error:', e);
+        }
+      }, 900);
+    }
+
+    function goBackToLogin() {
+      document.getElementById('user-choice-page').style.display = 'none';
+      document.getElementById('login-user').style.display = 'flex';
+      document.getElementById('user-matricule').value = '';
+    }
+    // ======================================
+
+    // Open tips page in new window
+    function openTipsPage() {
+      window.open('tips.html', '_blank', 'width=600,height=700,scrollbars=yes');
+    }
+
+    // ======================================================
+    // MODIFIER INDEX FIN DE MOIS (utilisateur)
+    // ======================================================
+    let _editingMatricule = null;
+
+    function openIndexModal(matricule, currentIndex) {
+      _editingMatricule = matricule;
+      document.getElementById('im-vehicle-label').textContent = 'Véhicule ' + matricule;
+      document.getElementById('im-current-val').textContent = currentIndex ? currentIndex.toLocaleString('fr-FR') : '—';
+      document.getElementById('im-new-index').value = currentIndex || '';
+      document.getElementById('index-modal-overlay').classList.add('open');
+      setTimeout(() => document.getElementById('im-new-index').focus(), 100);
+    }
+
+    function closeIndexModal() {
+      document.getElementById('index-modal-overlay').classList.remove('open');
+      _editingMatricule = null;
+    }
+
+    function saveNewIndex() {
+      const newVal = parseInt(document.getElementById('im-new-index').value);
+      if (!newVal || newVal < 0) {
+        document.getElementById('im-new-index').style.borderColor = '#ef4444';
+        return;
+      }
+      if (!_editingMatricule) return;
+
+      // Update in FUEL_DATA
+      const rec = FUEL_DATA.find(d => d.matricule === _editingMatricule);
+      if (rec) {
+        const oldFin = rec.index_fin;
+        rec.index_fin = newVal;
+        if (rec.index_debut !== null) {
+          rec.distance = newVal - rec.index_debut;
+        }
+        // Save to localStorage so it persists
+        const key = 'fuel_index_' + _editingMatricule;
+        localStorage.setItem(key, JSON.stringify({ index_fin: newVal, updated: new Date().toISOString() }));
+      }
+
+      closeIndexModal();
+      renderFuelPage(); // refresh display
+
+      // Show success toast
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(16,185,129,0.4);';
+      t.textContent = '✅ Index mis à jour avec succès';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    // Apply any saved index overrides on page load
+    function applyLocalIndexOverrides() {
+      FUEL_DATA.forEach(rec => {
+        const saved = localStorage.getItem('fuel_index_' + rec.matricule);
+        if (saved) {
+          try {
+            const obj = JSON.parse(saved);
+            rec.index_fin = obj.index_fin;
+            if (rec.index_debut !== null) rec.distance = obj.index_fin - rec.index_debut;
+          } catch(e) {}
+        }
+      });
+    }
+
+    // ======================================================
+    // TÉLÉCHARGER LA FICHE CARBURANT EN PDF
+    // ======================================================
+    function downloadFuelPDF() {
+      const mat = (window._selectedMatricule || '').trim().toUpperCase();
+      const records = FUEL_DATA.filter(d => {
+        const dm = String(d.matricule).trim().toUpperCase();
+        return dm === mat || dm.replace(/-/g,'') === mat.replace(/-/g,'');
+      });
+      if (records.length === 0) return;
+
+      const r = records[0];
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+
+      const fmt = v => v !== null && v !== undefined ? v.toLocaleString('fr-FR') : '—';
+      const tauxColor = r.taux_conso === null ? '#64748b'
+        : r.taux_conso < 8 ? '#10b981' : r.taux_conso < 12 ? '#f59e0b' : '#ef4444';
+
+      const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+      <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background:#fff; color:#1e293b; }
+        .page { max-width:794px; margin:0 auto; padding:40px 44px; }
+        .header { display:flex; align-items:center; justify-content:space-between; padding-bottom:20px; border-bottom:3px solid #10b981; margin-bottom:24px; }
+        .header-left h1 { font-size:22px; font-weight:800; color:#059669; }
+        .header-left p { font-size:12px; color:#64748b; margin-top:3px; }
+        .header-right { text-align:right; font-size:11px; color:#94a3b8; }
+        .badge { background:#10b981; color:white; font-size:13px; font-weight:800; padding:6px 16px; border-radius:8px; font-family:monospace; letter-spacing:1px; }
+        .vehicle-row { display:flex; align-items:center; gap:16px; background:#f0fdf4; border:1px solid #d1fae5; border-radius:12px; padding:16px 20px; margin-bottom:20px; }
+        .vehicle-info h2 { font-size:18px; font-weight:800; color:#1e293b; }
+        .vehicle-info p { font-size:12px; color:#64748b; margin-top:3px; }
+        .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+        .kpi { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; text-align:center; }
+        .kpi-val { font-size:18px; font-weight:800; color:#059669; font-family:monospace; }
+        .kpi-lbl { font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; }
+        table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+        th { background:#10b981; color:white; padding:10px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+        td { padding:10px 12px; border-bottom:1px solid #f1f5f9; font-size:13px; }
+        tr:nth-child(even) td { background:#f8fafc; }
+        .taux-chip { display:inline-block; padding:3px 10px; border-radius:20px; font-weight:700; font-size:13px; color:${tauxColor}; background:${tauxColor}18; }
+        .footer { margin-top:28px; padding-top:16px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; }
+        .obs-box { background:#fff7ed; border-left:4px solid #f97316; padding:10px 14px; border-radius:0 8px 8px 0; font-size:12px; color:#92400e; margin-bottom:16px; }
+        .updated-badge { background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; }
+      </style></head><body>
+      <div class="page">
+        <div class="header">
+          <div class="header-left">
+            <h1>⛽ Rapport Carburant — Situation Mars 2026</h1>
+            <p>Parc Auto — Direction Régionale de Sfax — Tunisie Telecom</p>
+          </div>
+          <div class="header-right">
+            <p>Édité le ${dateStr}</p>
+            <p style="margin-top:4px;font-weight:700;color:#1e293b;">Chef de Parc : Hamdi Ben Aouicha</p>
+          </div>
+        </div>
+
+        <div class="vehicle-row">
+          <span class="badge">${r.matricule}</span>
+          <div class="vehicle-info">
+            <h2>${r.marque}</h2>
+            <p>${r.division} · ${r.energie || ''} · ${r.places || ''}  places · MEC: ${r.mec || '—'}</p>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="kpi-val">${fmt(r.index_debut)}</div><div class="kpi-lbl">Index Début</div></div>
+          <div class="kpi"><div class="kpi-val">${fmt(r.index_fin)}</div><div class="kpi-lbl">Index Fin</div></div>
+          <div class="kpi"><div class="kpi-val">${r.distance !== null ? r.distance.toLocaleString('fr-FR')+' km' : '—'}</div><div class="kpi-lbl">Distance</div></div>
+          <div class="kpi"><div class="kpi-val">${r.ravitaillement !== null ? r.ravitaillement.toLocaleString('fr-FR')+' DT' : '—'}</div><div class="kpi-lbl">Ravitaillement</div></div>
+        </div>
+
+        <table>
+          <thead><tr><th>Donnée</th><th>Début du mois</th><th>Fin du mois</th></tr></thead>
+          <tbody>
+            <tr><td>📊 Index compteur</td><td>${fmt(r.index_debut)}</td><td>${fmt(r.index_fin)}</td></tr>
+            <tr><td>🪣 Carburant réservoir (L)</td><td>${r.qte_debut !== null ? r.qte_debut + ' L' : '—'}</td><td>${r.qte_fin !== null ? r.qte_fin + ' L' : '—'}</td></tr>
+            <tr><td>🔥 Quantité consommée</td><td colspan="2">${r.qte_consommee !== null ? r.qte_consommee + ' L' : '—'}</td></tr>
+            <tr><td>💶 Prix du litre</td><td colspan="2">${r.prix_litre !== null ? r.prix_litre + ' DT' : '—'}</td></tr>
+            <tr><td>💰 Ravitaillement total</td><td colspan="2">${r.ravitaillement !== null ? r.ravitaillement + ' DT' : '—'}</td></tr>
+            <tr><td>💳 Solde restant</td><td colspan="2">${r.solde !== null ? r.solde + ' DT' : '—'}</td></tr>
+            <tr><td>📈 Taux consommation</td><td colspan="2"><span class="taux-chip">${r.taux_conso !== null ? r.taux_conso + '%' : '—'}</span> (Seuil: ${r.seuil !== null ? (r.seuil*100).toFixed(0)+'%' : '—'})</td></tr>
+          </tbody>
+        </table>
+
+        ${r.observations ? '<div class="obs-box">⚠️ Observations : ' + r.observations + '</div>' : ''}
+
+        <div class="footer">
+          <span>Parc Auto DRT Sfax — Tunisie Telecom © 2026</span>
+          <span>Document généré automatiquement</span>
+        </div>
+      </div>
+      </body></html>`;
+
+      const w = window.open('', '_blank', 'width=900,height=700');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { w.focus(); w.print(); }, 500);
+    }
+
+
+    // ======================================
+    // DONNÉES CARBURANT (Situation 12-05-2026)
+    // ======================================
+    const FUEL_DATA = [{"matricule": "17-351899", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-02-15", "energie": "Super SP", "places": 5, "division": "Division  des resources humaines", "qte_debut": 10, "index_debut": 259140, "qte_fin": 10, "index_fin": 260091, "ravitaillement": 250.0, "solde": null, "distance": 951, "prix_litre": 2.525, "qte_consommee": 99.01, "taux_conso": 10.41, "seuil": 0.11, "observations": ""}, {"matricule": "17-357077", "marque": "PEUG BIPPER 5P", "cv": 5, "mec": "2014-08-29", "energie": "Super SP", "places": 5, "division": "Division clientèle", "qte_debut": 2, "index_debut": 161600, "qte_fin": 25, "index_fin": 162572, "ravitaillement": 350.0, "solde": 0.0, "distance": 972, "prix_litre": 2.525, "qte_consommee": 115.61, "taux_conso": 11.89, "seuil": 0.11, "observations": ""}, {"matricule": "17-345137", "marque": "FORD RANGER", "cv": 12, "mec": "2006-12-27", "energie": "Gasoil", "places": 5, "division": "Division clientèle - CSC Medina", "qte_debut": 15, "index_debut": 192069, "qte_fin": 40, "index_fin": 192416, "ravitaillement": 120.0, "solde": null, "distance": 347, "prix_litre": 2.205, "qte_consommee": 29.42, "taux_conso": 8.48, "seuil": 0.12, "observations": ""}, {"matricule": "17-346875", "marque": "MITSUBISHI", "cv": 10, "mec": "2008-02-11", "energie": "Gasoil", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 20, "index_debut": 99907, "qte_fin": 15, "index_fin": 100539, "ravitaillement": 120.0, "solde": 80.0, "distance": 632, "prix_litre": 2.205, "qte_consommee": 59.42, "taux_conso": 9.4, "seuil": 0.1, "observations": ""}, {"matricule": "17-346876", "marque": "MITSUBISHI", "cv": 10, "mec": "2008-02-11", "energie": "Gasoil", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": null, "index_debut": null, "qte_fin": 15, "index_fin": 148451, "ravitaillement": 120.0, "solde": null, "distance": null, "prix_litre": 2.205, "qte_consommee": null, "taux_conso": null, "seuil": 0.1, "observations": "Retour de réparation \n+ * Compteur Bloqué"}, {"matricule": "17-351255", "marque": "PEUG PARTNER 2P", "cv": 7, "mec": "2010-08-04", "energie": "Gasoil", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 20, "index_debut": 166204, "qte_fin": null, "index_fin": null, "ravitaillement": null, "solde": null, "distance": null, "prix_litre": 2.205, "qte_consommee": null, "taux_conso": null, "seuil": 0.1, "observations": "En réparation"}, {"matricule": "17-355699", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-12", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle - CSC Medina", "qte_debut": 15, "index_debut": 253503, "qte_fin": 0, "index_fin": 253852, "ravitaillement": 30.0, "solde": null, "distance": 349, "prix_litre": 2.205, "qte_consommee": 28.61, "taux_conso": 8.2, "seuil": 0.09, "observations": ""}, {"matricule": "17-355704", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-12", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle - CSC Medina", "qte_debut": 65, "index_debut": 118292, "qte_fin": 68, "index_fin": 118816, "ravitaillement": 100.0, "solde": 130.0, "distance": 524, "prix_litre": 2.205, "qte_consommee": 42.35, "taux_conso": 8.08, "seuil": 0.09, "observations": ""}, {"matricule": "17-357075", "marque": "PEUG BIPPER 5P", "cv": 5, "mec": "2014-08-28", "energie": "Super SP", "places": 5, "division": "Division clientèle - CSC Medina", "qte_debut": 15, "index_debut": 111585, "qte_fin": 0, "index_fin": 113090, "ravitaillement": 300.0, "solde": 0.0, "distance": 1505, "prix_litre": 2.525, "qte_consommee": 133.81, "taux_conso": 8.89, "seuil": 0.11, "observations": ""}, {"matricule": "17-357143", "marque": "PEUG BIPPER 2P", "cv": 6, "mec": "2014-08-29", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 30, "index_debut": 90383, "qte_fin": 25, "index_fin": 90934, "ravitaillement": 100.0, "solde": null, "distance": 551, "prix_litre": 2.205, "qte_consommee": 50.35, "taux_conso": 9.14, "seuil": 0.08, "observations": ""}, {"matricule": "17-357144", "marque": "PEUG BIPPER 2P", "cv": 6, "mec": "2014-08-29", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": null, "index_debut": null, "qte_fin": null, "index_fin": null, "ravitaillement": null, "solde": null, "distance": null, "prix_litre": 2.205, "qte_consommee": null, "taux_conso": null, "seuil": 0.08, "observations": "En réparation"}, {"matricule": "17-357148", "marque": "PEUG BIPPER 2P", "cv": 6, "mec": "2014-08-29", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 0, "index_debut": 169630, "qte_fin": 30, "index_fin": 140055, "ravitaillement": 70.0, "solde": null, "distance": -29575, "prix_litre": 2.205, "qte_consommee": 1.75, "taux_conso": -0.01, "seuil": 0.08, "observations": "Compteur debut 139630"}, {"matricule": "17-367820", "marque": "RENAULT EXPRESS 2P", "cv": 5, "mec": "2022-08-12", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 30, "index_debut": 26631, "qte_fin": 20, "index_fin": 27058, "ravitaillement": 60.0, "solde": null, "distance": 427, "prix_litre": 2.205, "qte_consommee": 37.21, "taux_conso": 8.71, "seuil": 0.08, "observations": ""}, {"matricule": "17-367821", "marque": "RENAULT EXPRESS 2P", "cv": 5, "mec": "2022-08-12", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 10, "index_debut": 85570, "qte_fin": 25, "index_fin": 86770, "ravitaillement": 230.0, "solde": null, "distance": 1200, "prix_litre": 2.205, "qte_consommee": 89.31, "taux_conso": 7.44, "seuil": 0.08, "observations": ""}, {"matricule": "17-368831", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-08-21", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 20, "index_debut": 31630, "qte_fin": 25, "index_fin": 33067, "ravitaillement": 210.0, "solde": 20.0, "distance": 1437, "prix_litre": 2.205, "qte_consommee": 90.24, "taux_conso": 6.28, "seuil": 0.08, "observations": ""}, {"matricule": "17-370279", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Medina", "qte_debut": 20, "index_debut": 14092, "qte_fin": 20, "index_fin": 15481, "ravitaillement": 230.0, "solde": null, "distance": 1389, "prix_litre": 2.205, "qte_consommee": 104.31, "taux_conso": 7.51, "seuil": 0.08, "observations": ""}, {"matricule": "17-344534", "marque": "FORD RANGER", "cv": 12, "mec": "2006-08-07", "energie": "Gasoil", "places": 5, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 25, "index_debut": 198911, "qte_fin": 48, "index_fin": 199450, "ravitaillement": 143.0, "solde": null, "distance": 539, "prix_litre": 2.205, "qte_consommee": 41.85, "taux_conso": 7.76, "seuil": 0.12, "observations": ""}, {"matricule": "17-349624", "marque": "FORD RANGER", "cv": 10, "mec": "2010-01-23", "energie": "Gasoil", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 20, "index_debut": 185624, "qte_fin": 10, "index_fin": 186898, "ravitaillement": 200.0, "solde": null, "distance": 1274, "prix_litre": 2.205, "qte_consommee": 100.7, "taux_conso": 7.9, "seuil": 0.12, "observations": ""}, {"matricule": "17-349762", "marque": "MITSUBISHI", "cv": 10, "mec": "2009-12-10", "energie": "Gasoil", "places": 5, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 35, "index_debut": 264680, "qte_fin": 35, "index_fin": 265173, "ravitaillement": 100.0, "solde": null, "distance": 493, "prix_litre": 2.205, "qte_consommee": 45.35, "taux_conso": 9.2, "seuil": 0.1, "observations": ""}, {"matricule": "17-351301", "marque": "RENAULT KANGO", "cv": 5, "mec": "2010-08-03", "energie": "Super SP", "places": 5, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 30, "index_debut": 255142, "qte_fin": 24, "index_fin": 256417, "ravitaillement": 230.0, "solde": null, "distance": 1275, "prix_litre": 2.525, "qte_consommee": 97.09, "taux_conso": 7.61, "seuil": 0.09, "observations": ""}, {"matricule": "17-351511", "marque": "FORD RANGER", "cv": 10, "mec": "2010-10-01", "energie": "Gasoil", "places": 5, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 20, "index_debut": 275633, "qte_fin": 30, "index_fin": 276578, "ravitaillement": 210.0, "solde": null, "distance": 945, "prix_litre": 2.205, "qte_consommee": 85.24, "taux_conso": 9.02, "seuil": 0.12, "observations": ""}, {"matricule": "17-355556", "marque": "CIT NEMO 2P", "cv": 6, "mec": "2013-10-23", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 25, "index_debut": 158060, "qte_fin": 10, "index_fin": 159230, "ravitaillement": 140.0, "solde": null, "distance": 1170, "prix_litre": 2.205, "qte_consommee": 78.49, "taux_conso": 6.71, "seuil": 0.08, "observations": ""}, {"matricule": "17-355695", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-12", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 25, "index_debut": 182385, "qte_fin": 8, "index_fin": 183015, "ravitaillement": 100.0, "solde": null, "distance": 630, "prix_litre": 2.205, "qte_consommee": 62.35, "taux_conso": 9.9, "seuil": 0.09, "observations": ""}, {"matricule": "17-355697", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-11", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 40, "index_debut": 149157, "qte_fin": 40, "index_fin": 149937, "ravitaillement": 135.0, "solde": null, "distance": 780, "prix_litre": 2.205, "qte_consommee": 61.22, "taux_conso": 7.85, "seuil": 0.09, "observations": ""}, {"matricule": "17-355700", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-11", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 8, "index_debut": 136474, "qte_fin": 35, "index_fin": 136641, "ravitaillement": 80.0, "solde": null, "distance": 167, "prix_litre": 2.205, "qte_consommee": 9.28, "taux_conso": 5.56, "seuil": 0.09, "observations": ""}, {"matricule": "17-355703", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-12", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 20, "index_debut": 166808, "qte_fin": 15, "index_fin": 167710, "ravitaillement": 230.0, "solde": null, "distance": 902, "prix_litre": 2.205, "qte_consommee": 109.31, "taux_conso": 12.12, "seuil": 0.09, "observations": ""}, {"matricule": "17-357076", "marque": "PEUG BIPPER 5P", "cv": 5, "mec": "2014-08-28", "energie": "Super SP", "places": 5, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 30, "index_debut": 166714, "qte_fin": 23, "index_fin": 167476, "ravitaillement": 210.0, "solde": null, "distance": 762, "prix_litre": 2.525, "qte_consommee": 90.17, "taux_conso": 11.83, "seuil": 0.11, "observations": ""}, {"matricule": "17-367822", "marque": "RENAULT EXPRESS 2P", "cv": 5, "mec": "2022-08-12", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 25, "index_debut": 39778, "qte_fin": 30, "index_fin": 40350, "ravitaillement": 90.0, "solde": null, "distance": 572, "prix_litre": 2.205, "qte_consommee": 35.82, "taux_conso": 6.26, "seuil": 0.08, "observations": ""}, {"matricule": "17-368829", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-08-21", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 2, "index_debut": 31754, "qte_fin": 25, "index_fin": 32557, "ravitaillement": 210.0, "solde": null, "distance": 803, "prix_litre": 2.205, "qte_consommee": 72.24, "taux_conso": 9.0, "seuil": 0.08, "observations": ""}, {"matricule": "17-368834", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-08-21", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 15, "index_debut": 35363, "qte_fin": 10, "index_fin": 36918, "ravitaillement": 210.0, "solde": null, "distance": 1555, "prix_litre": 2.205, "qte_consommee": 100.24, "taux_conso": 6.45, "seuil": 0.08, "observations": ""}, {"matricule": "17-370280", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": 20, "index_debut": 10544, "qte_fin": 10, "index_fin": 11325, "ravitaillement": 85.0, "solde": null, "distance": 781, "prix_litre": 2.205, "qte_consommee": 48.55, "taux_conso": 6.22, "seuil": 0.08, "observations": ""}, {"matricule": "17-370309", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle - CSC Sfax Nord", "qte_debut": null, "index_debut": null, "qte_fin": 15, "index_fin": 19303, "ravitaillement": 90.0, "solde": null, "distance": null, "prix_litre": 2.205, "qte_consommee": null, "taux_conso": null, "seuil": 0.08, "observations": ""}, {"matricule": "17-344532", "marque": "FORD RANGER", "cv": 12, "mec": "2006-08-07", "energie": "Gasoil", "places": 5, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 50, "index_debut": 267873, "qte_fin": 10, "index_fin": 268444, "ravitaillement": 60.0, "solde": null, "distance": 571, "prix_litre": 2.205, "qte_consommee": 67.21, "taux_conso": 11.77, "seuil": 0.12, "observations": ""}, {"matricule": "17-346799", "marque": "FORD RANGER", "cv": 10, "mec": "2008-01-17", "energie": "Gasoil", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 20, "index_debut": 217812, "qte_fin": 40, "index_fin": 218713, "ravitaillement": 200.0, "solde": null, "distance": 901, "prix_litre": 2.205, "qte_consommee": 70.7, "taux_conso": 7.85, "seuil": 0.12, "observations": ""}, {"matricule": "17-349623", "marque": "FORD RANGER", "cv": 10, "mec": "2010-01-23", "energie": "Gasoil", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 7, "index_debut": 182866, "qte_fin": 10, "index_fin": 183697, "ravitaillement": 200.0, "solde": null, "distance": 831, "prix_litre": 2.205, "qte_consommee": 87.7, "taux_conso": 10.55, "seuil": 0.12, "observations": ""}, {"matricule": "17-349763", "marque": "MITSUBISHI", "cv": 10, "mec": "2009-12-09", "energie": "Gasoil", "places": 5, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 5, "index_debut": 168827, "qte_fin": 10, "index_fin": 169429, "ravitaillement": 130.0, "solde": null, "distance": 602, "prix_litre": 2.205, "qte_consommee": 53.96, "taux_conso": 8.96, "seuil": 0.1, "observations": ""}, {"matricule": "17-351512", "marque": "FORD RANGER", "cv": 10, "mec": "2010-10-01", "energie": "Gasoil", "places": 5, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 10, "index_debut": 179283, "qte_fin": 15, "index_fin": 179871, "ravitaillement": 160.0, "solde": null, "distance": 588, "prix_litre": 2.205, "qte_consommee": 67.56, "taux_conso": 11.49, "seuil": 0.12, "observations": ""}, {"matricule": "17-354453", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-02-15", "energie": "Super SP", "places": 5, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 5, "index_debut": 169010, "qte_fin": 5, "index_fin": 170780, "ravitaillement": 420.0, "solde": null, "distance": 1770, "prix_litre": 2.525, "qte_consommee": 166.34, "taux_conso": 9.4, "seuil": 0.11, "observations": ""}, {"matricule": "17-355455", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-10-10", "energie": "Super SP", "places": 5, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 3, "index_debut": 162792, "qte_fin": 10, "index_fin": 163299, "ravitaillement": 70.0, "solde": null, "distance": 507, "prix_litre": 2.525, "qte_consommee": 20.72, "taux_conso": 4.09, "seuil": 0.11, "observations": ""}, {"matricule": "17-355557", "marque": "CIT NEMO 2P", "cv": 6, "mec": "2013-10-23", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 25, "index_debut": 159079, "qte_fin": 10, "index_fin": 159619, "ravitaillement": 80.0, "solde": null, "distance": 540, "prix_litre": 2.205, "qte_consommee": 51.28, "taux_conso": 9.5, "seuil": 0.08, "observations": ""}, {"matricule": "17-355558", "marque": "CIT NEMO 2P", "cv": 6, "mec": "2013-10-23", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 25, "index_debut": 202090, "qte_fin": 15, "index_fin": 203594, "ravitaillement": 230.0, "solde": null, "distance": 1504, "prix_litre": 2.205, "qte_consommee": 114.31, "taux_conso": 7.6, "seuil": 0.08, "observations": ""}, {"matricule": "17-355698", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-11", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 50, "index_debut": 132116, "qte_fin": 50, "index_fin": 132116, "ravitaillement": 0.0, "solde": null, "distance": 0, "prix_litre": 2.205, "qte_consommee": 0.0, "taux_conso": null, "seuil": 0.09, "observations": "au garage pour reparation"}, {"matricule": "17-355701", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-11", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 53, "index_debut": 100660, "qte_fin": 35, "index_fin": 101588, "ravitaillement": 140.0, "solde": null, "distance": 928, "prix_litre": 2.205, "qte_consommee": 81.49, "taux_conso": 8.78, "seuil": 0.09, "observations": ""}, {"matricule": "17-355705", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-11", "energie": "Gasoil sans soufre", "places": 3, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 30, "index_debut": 210117, "qte_fin": 45, "index_fin": 211116, "ravitaillement": 230.0, "solde": null, "distance": 999, "prix_litre": 2.205, "qte_consommee": 89.31, "taux_conso": 8.94, "seuil": 0.09, "observations": ""}, {"matricule": "17-367818", "marque": "RENAULT EXPRESS 2P", "cv": 5, "mec": "2022-08-12", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 25, "index_debut": 43730, "qte_fin": 10, "index_fin": 44666, "ravitaillement": 90.0, "solde": null, "distance": 936, "prix_litre": 2.205, "qte_consommee": 55.82, "taux_conso": 5.96, "seuil": 0.08, "observations": ""}, {"matricule": "17-367819", "marque": "RENAULT EXPRESS 2P", "cv": 5, "mec": "2022-08-12", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 20, "index_debut": 40275, "qte_fin": 20, "index_fin": 41388, "ravitaillement": 160.0, "solde": null, "distance": 1113, "prix_litre": 2.205, "qte_consommee": 72.56, "taux_conso": 6.52, "seuil": 0.08, "observations": ""}, {"matricule": "17-368830", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-08-21", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 30, "index_debut": 44223, "qte_fin": 25, "index_fin": 45264, "ravitaillement": 170.0, "solde": null, "distance": 1041, "prix_litre": 2.205, "qte_consommee": 82.1, "taux_conso": 7.89, "seuil": 0.08, "observations": ""}, {"matricule": "17-370281", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division clientèle -CSC SFAX SUD", "qte_debut": 10, "index_debut": 14506, "qte_fin": 10, "index_fin": 16310, "ravitaillement": 230.0, "solde": null, "distance": 1804, "prix_litre": 2.205, "qte_consommee": 104.31, "taux_conso": 5.78, "seuil": 0.08, "observations": ""}, {"matricule": "17-349213", "marque": "WV CADDY", "cv": 8, "mec": "2009-05-07", "energie": "Gasoil", "places": 2, "division": "Division commerciale", "qte_debut": 15, "index_debut": 163757, "qte_fin": 10, "index_fin": 164290, "ravitaillement": 100.0, "solde": null, "distance": 533, "prix_litre": 2.205, "qte_consommee": 50.35, "taux_conso": 9.45, "seuil": 0.1, "observations": ""}, {"matricule": "17-349945", "marque": "PEUG PARTNER 2P", "cv": 7, "mec": "2009-12-24", "energie": "Gasoil", "places": 2, "division": "Division commerciale", "qte_debut": 15, "index_debut": 95562, "qte_fin": 35, "index_fin": 95902, "ravitaillement": 100.0, "solde": null, "distance": 340, "prix_litre": 2.205, "qte_consommee": 25.35, "taux_conso": 7.46, "seuil": 0.1, "observations": ""}, {"matricule": "17-354454", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-02-15", "energie": "Super SP", "places": 5, "division": "Division commerciale", "qte_debut": 20, "index_debut": 189986, "qte_fin": 20, "index_fin": 189986, "ravitaillement": 230.0, "solde": null, "distance": 0, "prix_litre": 2.525, "qte_consommee": 91.09, "taux_conso": null, "seuil": 0.11, "observations": "la voiture durant le mos de Janvier Février Mars elles est ne cicule pas en panne"}, {"matricule": "17-355702", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-12", "energie": "Gasoil sans soufre", "places": 3, "division": "Division commerciale", "qte_debut": 25, "index_debut": 195850, "qte_fin": 15, "index_fin": 197062, "ravitaillement": 230.0, "solde": null, "distance": 1212, "prix_litre": 2.205, "qte_consommee": 114.31, "taux_conso": 9.43, "seuil": 0.09, "observations": ""}, {"matricule": "17-357079", "marque": "PEUG BIPPER 5P", "cv": 5, "mec": "2014-08-29", "energie": "Super SP", "places": 5, "division": "Division commerciale", "qte_debut": 12, "index_debut": 113710, "qte_fin": 10, "index_fin": 115115, "ravitaillement": 370.0, "solde": null, "distance": 1405, "prix_litre": 2.525, "qte_consommee": 148.53, "taux_conso": 10.57, "seuil": 0.11, "observations": ""}, {"matricule": "17-368832", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-08-21", "energie": "Gasoil sans soufre", "places": 2, "division": "Division commerciale", "qte_debut": 35, "index_debut": 47540, "qte_fin": 35, "index_fin": 48754, "ravitaillement": 230.0, "solde": null, "distance": 1214, "prix_litre": 2.205, "qte_consommee": 104.31, "taux_conso": 8.59, "seuil": 0.08, "observations": ""}, {"matricule": "17-351890", "marque": "MAZDA", "cv": 10, "mec": "2012-02-14", "energie": "Gasoil", "places": 5, "division": "Division de réseaux", "qte_debut": 5, "index_debut": 301966, "qte_fin": 5, "index_fin": 303884, "ravitaillement": 400.0, "solde": null, "distance": 1918, "prix_litre": 2.205, "qte_consommee": 181.41, "taux_conso": 9.46, "seuil": 0.13, "observations": ""}, {"matricule": "17-354452", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-02-15", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": 5, "index_debut": 180710, "qte_fin": 5, "index_fin": 181740, "ravitaillement": 250.0, "solde": null, "distance": 1030, "prix_litre": 2.525, "qte_consommee": 99.01, "taux_conso": 9.61, "seuil": 0.11, "observations": ""}, {"matricule": "17-354455", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-02-15", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": 35, "index_debut": 236062, "qte_fin": 15, "index_fin": 237240, "ravitaillement": 250.0, "solde": null, "distance": 1178, "prix_litre": 2.525, "qte_consommee": 119.01, "taux_conso": 10.1, "seuil": 0.11, "observations": ""}, {"matricule": "17-354456", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-02-15", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": 25, "index_debut": 217885, "qte_fin": 35, "index_fin": 218570, "ravitaillement": 185.0, "solde": null, "distance": 685, "prix_litre": 2.525, "qte_consommee": 63.27, "taux_conso": 9.24, "seuil": 0.11, "observations": ""}, {"matricule": "17-355456", "marque": "CIT NEMO 5P", "cv": 5, "mec": "2013-10-10", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": 25, "index_debut": 214755, "qte_fin": 30, "index_fin": 216471, "ravitaillement": 438.0, "solde": null, "distance": 1716, "prix_litre": 2.525, "qte_consommee": 168.47, "taux_conso": 9.82, "seuil": 0.11, "observations": ""}, {"matricule": "17-355555", "marque": "CIT NEMO 2P", "cv": 6, "mec": "2013-10-23", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 10, "index_debut": 225083, "qte_fin": 30, "index_fin": 226276, "ravitaillement": 204.0, "solde": null, "distance": 1193, "prix_litre": 2.205, "qte_consommee": 72.52, "taux_conso": 6.08, "seuil": 0.08, "observations": ""}, {"matricule": "17-355696", "marque": "CIT JUMPY", "cv": 5, "mec": "2013-11-12", "energie": "Gasoil sans soufre", "places": 3, "division": "Division de réseaux", "qte_debut": 23, "index_debut": 260420, "qte_fin": 35, "index_fin": 261460, "ravitaillement": 230.0, "solde": null, "distance": 1040, "prix_litre": 2.205, "qte_consommee": 92.31, "taux_conso": 8.88, "seuil": 0.09, "observations": ""}, {"matricule": "17-356835", "marque": "FORD FIGO", "cv": 5, "mec": "2014-06-30", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": 35, "index_debut": 228372, "qte_fin": 35, "index_fin": 228753, "ravitaillement": 96.0, "solde": null, "distance": 381, "prix_litre": 2.525, "qte_consommee": 38.02, "taux_conso": 9.98, "seuil": 0.11, "observations": ""}, {"matricule": "17-357074", "marque": "PEUG BIPPER 5P", "cv": 5, "mec": "2014-08-29", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": 10, "index_debut": 259500, "qte_fin": 3, "index_fin": 260845, "ravitaillement": 320.0, "solde": null, "distance": 1345, "prix_litre": 2.525, "qte_consommee": 133.73, "taux_conso": 9.94, "seuil": 0.11, "observations": ""}, {"matricule": "17-357078", "marque": "PEUG BIPPER 5P", "cv": 5, "mec": "2014-08-27", "energie": "Super SP", "places": 5, "division": "Division de réseaux", "qte_debut": null, "index_debut": null, "qte_fin": null, "index_fin": null, "ravitaillement": null, "solde": null, "distance": 0, "prix_litre": 2.525, "qte_consommee": 0.0, "taux_conso": null, "seuil": 0.11, "observations": ""}, {"matricule": "17-357145", "marque": "PEUG BIPPER 2P", "cv": 6, "mec": "2014-08-29", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 15, "index_debut": 245268, "qte_fin": 3, "index_fin": 247077, "ravitaillement": 180.0, "solde": null, "distance": 1809, "prix_litre": 2.205, "qte_consommee": 93.63, "taux_conso": 5.18, "seuil": 0.08, "observations": ""}, {"matricule": "17-357149", "marque": "PEUG BIPPER 2P", "cv": 6, "mec": "2014-08-29", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 20, "index_debut": 239905, "qte_fin": 30, "index_fin": 242070, "ravitaillement": 310.0, "solde": null, "distance": 2165, "prix_litre": 2.205, "qte_consommee": 130.59, "taux_conso": 6.03, "seuil": 0.08, "observations": ""}, {"matricule": "17-363395", "marque": "FORD RANGER", "cv": 10, "mec": "2009-07-03", "energie": "Gasoil", "places": 2, "division": "Division de Réseaux", "qte_debut": 10, "index_debut": 201367, "qte_fin": 5, "index_fin": 202797, "ravitaillement": 300.0, "solde": null, "distance": 1430, "prix_litre": 2.205, "qte_consommee": 141.05, "taux_conso": 9.86, "seuil": 0.14, "observations": "Panne au JAUGE de carburant"}, {"matricule": "17-368833", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-08-21", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 35, "index_debut": 38970, "qte_fin": 20, "index_fin": 39790, "ravitaillement": 117.0, "solde": null, "distance": 820, "prix_litre": 2.205, "qte_consommee": 68.06, "taux_conso": 8.3, "seuil": 0.08, "observations": ""}, {"matricule": "17-369453", "marque": "FIAT FIORINO", "cv": 5, "mec": "2023-12-07", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 30, "index_debut": 55780, "qte_fin": 25, "index_fin": 57695, "ravitaillement": 230.0, "solde": null, "distance": 1915, "prix_litre": 2.205, "qte_consommee": 109.31, "taux_conso": 5.71, "seuil": 0.08, "observations": ""}, {"matricule": "17-370307", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 16, "index_debut": 20947, "qte_fin": 35, "index_fin": 22592, "ravitaillement": 270.0, "solde": null, "distance": 1645, "prix_litre": 2.205, "qte_consommee": 103.45, "taux_conso": 6.29, "seuil": 0.08, "observations": ""}, {"matricule": "17-370308", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division de réseaux", "qte_debut": 20, "index_debut": 15436, "qte_fin": 3, "index_fin": 15733, "ravitaillement": 0.0, "solde": null, "distance": 297, "prix_litre": 2.205, "qte_consommee": 17.0, "taux_conso": 5.72, "seuil": 0.08, "observations": ""}, {"matricule": "17-349212", "marque": "WV CADDY", "cv": 8, "mec": "2009-05-07", "energie": "Gasoil", "places": 2, "division": "Division des affaires administratives et financières", "qte_debut": 10, "index_debut": 382051, "qte_fin": 5, "index_fin": 383412, "ravitaillement": 200.0, "solde": null, "distance": 1361, "prix_litre": 2.205, "qte_consommee": 95.7, "taux_conso": 7.03, "seuil": 0.1, "observations": ""}, {"matricule": "17-353430", "marque": "Berlingo", "cv": 6, "mec": "2012-04-12", "energie": "Super SP", "places": 5, "division": "Division des affaires administratives et financières", "qte_debut": 25, "index_debut": 216989, "qte_fin": 20, "index_fin": 217782, "ravitaillement": 230.0, "solde": null, "distance": 793, "prix_litre": 2.525, "qte_consommee": 96.09, "taux_conso": 12.12, "seuil": 0.1, "observations": ""}, {"matricule": "17-356884", "marque": "MINI-BUS TOYOTA", "cv": 14, "mec": "2014-07-09", "energie": "Gasoil", "places": 30, "division": "Division des affaires administratives et financières", "qte_debut": 40, "index_debut": 122937, "qte_fin": 40, "index_fin": 122937, "ravitaillement": 0.0, "solde": null, "distance": 0, "prix_litre": 2.205, "qte_consommee": 0.0, "taux_conso": null, "seuil": 0.2, "observations": ""}, {"matricule": "17-357146", "marque": "PEUG BIPPER 2P", "cv": 6, "mec": "2014-08-29", "energie": "Gasoil sans soufre", "places": 2, "division": "Division des affaires administratives et financières", "qte_debut": 4, "index_debut": 257113, "qte_fin": 4, "index_fin": 258685, "ravitaillement": 230.0, "solde": null, "distance": 1572, "prix_litre": 2.205, "qte_consommee": 104.31, "taux_conso": 6.64, "seuil": 0.08, "observations": ""}, {"matricule": "17-371048", "marque": "renault express", "cv": 5, "mec": "", "energie": "Gasoil sans soufre", "places": 2, "division": "Division des affaires administratives et financières", "qte_debut": 40, "index_debut": 9712, "qte_fin": 22, "index_fin": 14538, "ravitaillement": 802.0, "solde": null, "distance": 4826, "prix_litre": 2.205, "qte_consommee": 381.72, "taux_conso": 7.91, "seuil": 0.08, "observations": ""}, {"matricule": "17-348917", "marque": "WV POLO 6", "cv": 5, "mec": "2009-04-01", "energie": "Super SP", "places": 5, "division": "Zone Sud", "qte_debut": 15, "index_debut": 155508, "qte_fin": 16, "index_fin": 156092, "ravitaillement": 110.0, "solde": 140.0, "distance": 584, "prix_litre": 2.525, "qte_consommee": 42.56, "taux_conso": 7.29, "seuil": 0.08, "observations": ""}, {"matricule": "17-351401", "marque": "WV POLO 7", "cv": 5, "mec": "2010-09-07", "energie": "Super SP", "places": 5, "division": "Zone Sud", "qte_debut": 5, "index_debut": 363026, "qte_fin": 0, "index_fin": 363097, "ravitaillement": 0.0, "solde": 250.0, "distance": 71, "prix_litre": 2.525, "qte_consommee": 5.0, "taux_conso": 7.04, "seuil": 0.08, "observations": ""}, {"matricule": "17-351435", "marque": "WV POLO 7", "cv": 5, "mec": "2010-09-14", "energie": "Super SP", "places": 5, "division": "Zone Sud", "qte_debut": 30, "index_debut": 293412, "qte_fin": 42, "index_fin": 293711, "ravitaillement": 90.0, "solde": 160.0, "distance": 299, "prix_litre": 2.525, "qte_consommee": 23.64, "taux_conso": 7.91, "seuil": 0.08, "observations": ""}];
+
+    function goToFuel() {
+      document.getElementById('user-choice-page').style.display = 'none';
+      document.getElementById('fuel-page').style.display = 'block';
+      applyLocalIndexOverrides();
+      renderFuelPage();
+    }
+
+    function goBackFromFuel() {
+      document.getElementById('fuel-page').style.display = 'none';
+      document.getElementById('user-choice-page').style.display = 'flex';
+    }
+
+    function renderFuelPage() {
+      const mat = (window._selectedMatricule || '').trim().toUpperCase();
+      const content = document.getElementById('fuel-content');
+
+      // Filtre strict par matricule du chauffeur connecté uniquement
+      const records = FUEL_DATA.filter(d => {
+        const dm = String(d.matricule).trim().toUpperCase();
+        return dm === mat || dm.replace(/-/g,'') === mat.replace(/-/g,'');
+      });
+
+      if (records.length === 0) {
+        content.innerHTML = `
+          <div class="fuel-not-found">
+            <div class="nf-icon">⛽</div>
+            <p><strong>Matricule ${mat}</strong><br>non trouvé dans la situation carburant de mai 2026.</p>
+            <p style="font-size:12px;margin-top:8px;color:#cbd5e1;">Contactez le chef de parc pour plus d'informations.</p>
+          </div>`;
+        return;
+      }
+
+      content.innerHTML = records.map(r => buildFuelCard(r)).join('');
+    }
+
+    function buildFuelCard(r) {
+      const indexDebut = r.index_debut !== null ? r.index_debut.toLocaleString('fr-FR') : '—';
+      const indexFin   = r.index_fin   !== null ? r.index_fin.toLocaleString('fr-FR')   : '—';
+      const qteDebut   = r.qte_debut   !== null ? r.qte_debut + ' L' : '—';
+      const qteFin     = r.qte_fin     !== null ? r.qte_fin   + ' L' : '—';
+      const km         = r.km_parcourus !== null ? r.km_parcourus.toLocaleString('fr-FR') + ' km' : '—';
+      const ravi       = r.ravitaillement !== null ? r.ravitaillement.toLocaleString('fr-FR') + ' DT' : '—';
+      const solde      = r.solde !== null ? r.solde.toLocaleString('fr-FR') + ' DT' : '—';
+
+      // Taux bar
+      let tauxHtml = '—';
+      if (r.taux_conso !== null && r.taux_conso >= 0) {
+        const pct = r.taux_conso;
+        const cls = pct < 8 ? 'taux-ok' : pct < 12 ? 'taux-warn' : 'taux-high';
+        const barW = Math.min(pct, 20) / 20 * 100; // max 20% = 100%
+        tauxHtml = `<div class="taux-bar-wrap ${cls}">
+          <div class="taux-bar"><div class="taux-bar-fill" style="width:${barW}%"></div></div>
+          <span class="taux-val">${pct.toFixed(2)}%</span>
+        </div>`;
+      }
+
+      // KM progress indicator
+      let kmBadge = '';
+      if (r.km_parcourus !== null) {
+        const kmNum = r.km_parcourus;
+        const color = kmNum > 3000 ? '#ef4444' : kmNum > 1500 ? '#f59e0b' : '#10b981';
+        kmBadge = `<span style="font-size:11px;font-weight:700;color:${color};background:${color}18;padding:2px 8px;border-radius:6px;">${kmNum.toLocaleString('fr-FR')} km</span>`;
+      }
+
+      const obsHtml = r.observations ? `<div class="fuel-obs">⚠️ ${r.observations}</div>` : '';
+
+      return `
+        <div class="fuel-vehicle-card">
+          <div class="fuel-vehicle-header">
+            <div class="fuel-matricule-badge">${r.matricule}</div>
+            <div>
+              <div class="fuel-marque">${r.marque}</div>
+              <div class="fuel-division">${r.division}</div>
+            </div>
+            ${kmBadge}
+          </div>
+
+          <div class="fuel-kpis">
+            <div class="fuel-kpi">
+              <div class="fuel-kpi-value">${indexDebut}</div>
+              <div class="fuel-kpi-label">Index Début</div>
+            </div>
+            <div class="fuel-kpi">
+              <div class="fuel-kpi-value">${indexFin}</div>
+              <div class="fuel-kpi-label">Index Fin</div>
+            </div>
+            <div class="fuel-kpi">
+              <div class="fuel-kpi-value" style="font-size:16px;">${km}</div>
+              <div class="fuel-kpi-label">KM Parcourus</div>
+            </div>
+            <div class="fuel-kpi">
+              <div class="fuel-kpi-value" style="font-size:16px;">${ravi}</div>
+              <div class="fuel-kpi-label">Ravitaillement</div>
+            </div>
+          </div>
+
+          <table class="fuel-index-table">
+            <thead>
+              <tr>
+                <th>Donnée</th>
+                <th>Début du mois</th>
+                <th>Fin du mois</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>📊 Index compteur</td>
+                <td>${indexDebut}</td>
+                <td>${indexFin}</td>
+              </tr>
+              <tr>
+                <td>🪣 Carburant réservoir</td>
+                <td>${qteDebut}</td>
+                <td>${qteFin}</td>
+              </tr>
+              <tr>
+                <td>💰 Solde restant</td>
+                <td colspan="2">${solde}</td>
+              </tr>
+              <tr>
+                <td>📈 Taux consommation</td>
+                <td colspan="2">${tauxHtml}</td>
+              </tr>
+            </tbody>
+          </table>
+          ${obsHtml}
+          <div style="margin-top:12px;text-align:right;">
+            <button onclick="openIndexModal('${r.matricule}', ${r.index_fin !== null ? r.index_fin : 0})"
+              style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;
+              padding:9px 18px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;
+              box-shadow:0 3px 10px rgba(16,185,129,0.25);">
+              ✏️ Modifier l'index de fin
+            </button>
+          </div>
+        </div>`; 
+    }
+
+  </script>
+  
+  <!-- ===== PAGE CARBURANT ===== -->
+  <div id="fuel-page" class="fuel-page">
+    <div class="fuel-header">
+      <div class="fuel-header-left">
+        <div class="fuel-logo">⛽</div>
+        <div>
+          <h2>Carburant &amp; Index</h2>
+          <p id="fuel-period-label">Situation au 12-05-2026</p>
+        </div>
+      </div>
+      <div class="fuel-header-btns" style="display:flex;gap:8px;align-items:center;">
+        <button onclick="downloadFuelPDF()" style="background:linear-gradient(135deg,#ef4444,#f97316);color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+          📄 PDF
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="goBackFromFuel()" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">← Retour</button>
+        <button class="btn btn-secondary btn-sm" onclick="logout()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">🚪</button>
+      </div>
+    </div>
+    <div id="fuel-content">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="drive-integration.js"></script>
+
+  <!-- INDEX EDIT MODAL -->
+  <div class="index-modal-overlay" id="index-modal-overlay">
+    <div class="index-modal">
+      <h3>📊 Modifier l'index</h3>
+      <p class="im-sub" id="im-vehicle-label">Véhicule —</p>
+      <div class="im-current">
+        <div>
+          <div class="im-current-label">Index actuel</div>
+          <div class="im-current-val" id="im-current-val">—</div>
+        </div>
+        <span style="font-size:24px;">📊</span>
+      </div>
+      <p class="im-warning">⚠️ Saisissez uniquement l'index de fin de mois relevé sur le compteur</p>
+      <input type="number" id="im-new-index" placeholder="Ex: 229604" min="0">
+      <div class="im-btns">
+        <button class="im-btn-cancel" onclick="closeIndexModal()">Annuler</button>
+        <button class="im-btn-save" onclick="saveNewIndex()">✅ Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
