@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Parc Auto DRT Sfax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="drive-styles.css">
+  <style>
+    body { font-family: 'IBM Plex Sans', sans-serif; }
+
+    /* ── TT Color override ── */
+    :root {
+      --primary: #1d4ed8;
+      --primary-light: #3b82f6;
+      --primary-dark: #1e40af;
+    }
+
+    /* ── Sidebar TT ── */
+    .sidebar {
+      background: linear-gradient(180deg, #1e3a5f 0%, #0f172a 100%);
+      border-right: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .sidebar-header {
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 18px 20px;
+    }
+
+    .sidebar-logo {
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6, #60a5fa);
+      box-shadow: 0 4px 12px rgba(29,78,216,0.3);
+    }
+
+    .sidebar-title { color: #ffffff; font-size: 15px; }
+    .sidebar-title span { color: rgba(255,255,255,0.4); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+    .nav-section-title { color: rgba(255,255,255,0.25); font-size: 9px; letter-spacing: 2px; }
+
+    .nav-item { color: rgba(255,255,255,0.55); border-radius: 8px; }
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); }
+    .nav-item.active {
+      background: rgba(29,78,216,0.15);
+      color: #ff6b6b;
+      border-left: 3px solid #1d4ed8;
+      padding-left: 9px;
+    }
+
+    .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-name { color: #ffffff; }
+    .user-role { color: rgba(255,255,255,0.35); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ── Top header ── */
+    .top-header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    /* ── KPI cards ── */
+    #stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+
+    .stat-card {
+      border-radius: 14px;
+      padding: 22px 20px;
+      border: none;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.12); }
+
+    .stat-card.kpi-blue   { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+    .stat-card.kpi-green  { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); }
+    .stat-card.kpi-orange { background: linear-gradient(135deg, #92400e 0%, #f59e0b 100%); }
+    .stat-card.kpi-red    { background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .stat-card .stat-icon { background: rgba(255,255,255,0.15); border-radius: 10px; }
+    .stat-card .stat-info h3 { color: #ffffff; font-size: 28px; font-weight: 700; }
+    .stat-card .stat-info p  { color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500; margin-top: 3px; }
+
+    /* ── Mini chart bar ── */
+    .mini-bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 32px;
+      margin-top: 8px;
+    }
+    .mini-bar {
+      flex: 1;
+      border-radius: 3px 3px 0 0;
+      background: rgba(255,255,255,0.3);
+      transition: height 0.5s ease;
+    }
+
+    /* ── Page titles ── */
+    .page-title { font-size: 22px; font-weight: 700; color: #1e293b; }
+    .page-subtitle { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+
+    /* ── TT accent on btn-primary ── */
+    .btn-primary { background: linear-gradient(135deg, #1d4ed8, #3b82f6, #60a5fa); }
+    .btn-primary:hover { background: linear-gradient(135deg, #3b82f6, #60a5fa); box-shadow: 0 4px 14px rgba(29,78,216,0.3); }
+
+    /* ── Card headers ── */
+    .card-title { font-size: 15px; font-weight: 600; }
+
+    /* ── TT badge on brand color ── */
+    .tt-brand-bar {
+      height: 3px;
+      background: linear-gradient(90deg, #1d4ed8, #3b82f6, #eab308, #22c55e, #3b82f6, #a855f7, #1d4ed8);
+      background-size: 200% 100%;
+      animation: brandSlide 3s linear infinite;
+    }
+    @keyframes brandSlide { 0% { background-position: 0 0; } 100% { background-position: 200% 0; } }
+
+    /* ── Mobile hamburger ── */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #1e293b;
+      padding: 4px 8px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hamburger { display: block; }
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+      .sidebar.open { transform: translateX(0); box-shadow: 8px 0 32px rgba(0,0,0,0.4); }
+      .sidebar-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+        z-index: 99; display: none;
+      }
+      .sidebar-overlay.active { display: block; }
+    }
+  </style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- Mobile overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="tt-brand-bar"></div>
+  <div class="sidebar-header">
+    <div class="sidebar-logo"><img src="data:image/jpeg;base64,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" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+    <div class="sidebar-title">
+      Parc Auto DRT Sfax
+      <span>Tunisie Telecom</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-title">Principal</div>
+      <a href="#" class="nav-item active" data-nav="dashboard">
+        <span>📊</span> Tableau de bord
+      </a>
+      <a href="#" class="nav-item" data-nav="vehicles">
+        <span>🚗</span> Véhicules
+        <span class="nav-badge" id="nav-vehicle-count">0</span>
+      </a>
+      <a href="#" class="nav-item" data-nav="alerts">
+        <span>🚨</span> Alertes
+        <span class="nav-badge" id="nav-alert-count" style="display:none;">0</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Gestion</div>
+      <a href="#" class="nav-item" data-nav="repairs">
+        <span>🔧</span> Réparations
+      </a>
+      <a href="#" class="nav-item" data-nav="add-repair">
+        <span>➕</span> Nouvelle Intervention
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Système</div>
+      <a href="#" class="nav-item" data-nav="settings">
+        <span>⚙️</span> Paramètres
+      </a>
+      <a href="#" class="nav-item" onclick="exportData()">
+        <span>💾</span> Exporter
+      </a>
+      <a href="drive-manager.html" class="nav-item" style="background:linear-gradient(135deg,rgba(66,133,244,0.15),rgba(52,168,83,0.1));color:#4285f4;border-left:3px solid #4285f4;">
+          <span>☁️</span> Google Drive
+        </a>
+      <a href="#" class="nav-item" onclick="importData()">
+        <span>📥</span> Importer
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">👤</div>
+      <div class="user-details">
+        <div class="user-name" id="admin-name">Administrateur</div>
+        <div class="user-role">Super Admin</div>
+      </div>
+      <button class="btn-icon" onclick="logout()" title="Déconnexion"
+              style="border:none;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);width:32px;height:32px;">
+        🚪
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+  <header class="top-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">
+        <a href="#" onclick="showTab('dashboard')">Accueil</a>
+        <span>/</span>
+        <span id="breadcrumb-current">Tableau de bord</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div id="sync-status">
+        <span class="sync-status synced">🔄 Synchronisé</span>
+      </div>
+      <button class="btn-icon" onclick="syncNow()" title="Synchroniser">🔄</button>
+      <button class="btn-icon" title="Notifications">🔔<span class="notification-dot" id="notif-dot" style="display:none;"></span></button>
+      <button class="btn-icon" onclick="logout()" title="Déconnexion">🚪</button>
+    </div>
+  </header>
+
+  <div class="page-content">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active">
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-subtitle">Vue d'ensemble du parc automobile — DRT Sfax</p>
+
+      <div id="stats-container"></div>
+
+      <!-- Alertes + Réparations côte à côte sur desktop -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;" id="dashboard-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🚨 Alertes Actives</span>
+            <button class="btn btn-sm btn-secondary" onclick="showTab('alerts')">Voir tout</button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Matricule</th><th>Type</th><th>Détail</th></tr></thead>
+                <tbody id="dashboard-alerts-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔧 Dernières Interventions</span>
+            <button class="btn btn-sm btn-secondary" onclick="showTab('repairs')">Voir tout</button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Date</th><th>Matricule</th><th>Type</th><th>Montant</th></tr></thead>
+                <tbody id="dashboard-repairs-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VEHICULES -->
+    <div id="tab-vehicles" class="tab-content">
+      <h1 class="page-title">Parc Véhicules</h1>
+      <p class="page-subtitle">Gestion complète des véhicules</p>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-box">
+            <input type="text" placeholder="Rechercher un véhicule..." id="search-vehicles">
+          </div>
+          <button class="btn btn-primary" onclick="openVehicleModal()">
+            <span>➕</span> Ajouter Véhicule
+          </button>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Matricule</th><th>Modèle</th><th>Chauffeur</th><th>KM Actuel</th>
+                  <th>Proch. Vidange</th><th>Proch. Chaîne</th><th>Visite Tech.</th><th>Statut</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vehicles-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTES -->
+    <div id="tab-alerts" class="tab-content">
+      <h1 class="page-title">Alertes</h1>
+      <p class="page-subtitle">Dépassements et échéances à traiter</p>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🚨 Véhicules en Alerte</span>
+          <div class="filters">
+            <button class="btn btn-sm btn-secondary" onclick="filterAlerts('all')">Toutes</button>
+            <button class="btn btn-sm btn-danger" onclick="filterAlerts('urgent')">Urgentes</button>
+            <button class="btn btn-sm btn-warning" onclick="filterAlerts('warning')">Avertissements</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>Matricule</th><th>Chauffeur</th><th>Priorité</th><th>Type</th><th>Détail</th><th>KM Actuel</th></tr>
+              </thead>
+              <tbody id="alerts-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RÉPARATIONS -->
+    <div id="tab-repairs" class="tab-content">
+      <h1 class="page-title">Historique Réparations</h1>
+      <p class="page-subtitle">Toutes les interventions enregistrées</p>
+      <div class="card">
+        <div class="card-header">
+          <div class="search-box">
+            <input type="text" placeholder="Rechercher..." id="search-repairs">
+          </div>
+          <button class="btn btn-primary" onclick="showTab('add-repair')">
+            <span>➕</span> Nouvelle Intervention
+          </button>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Matricule</th><th>Chauffeur</th><th>Type</th><th>Désignation</th><th>KM</th><th>Montant</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="repairs-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOUVELLE INTERVENTION -->
+    <div id="tab-add-repair" class="tab-content">
+      <h1 class="page-title">Nouvelle Intervention</h1>
+      <p class="page-subtitle">Enregistrer une réparation ou maintenance</p>
+      <div class="card" style="max-width:760px;">
+        <div class="card-header">
+          <span class="card-title">📋 Détails de l'intervention</span>
+        </div>
+        <div class="card-body">
+          <form id="repair-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Matricule <span class="required">*</span></label>
+                <select class="form-control" id="repair-matricule" required onchange="parcAuto?.autofillChauffeur()">
+                  <option value="">Sélectionner un véhicule</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Chauffeur</label>
+                <input type="text" class="form-control" id="repair-chauffeur" placeholder="Nom du chauffeur">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Type d'intervention <span class="required">*</span></label>
+                <select class="form-control" id="repair-type" required>
+                  <option value="">Sélectionner</option>
+                  <option value="Vidange">Vidange</option>
+                  <option value="Kit Chaîne">Kit Chaîne</option>
+                  <option value="Visite Technique">Visite Technique</option>
+                  <option value="Réparation">Réparation</option>
+                  <option value="Pneumatique">Pneumatique</option>
+                  <option value="Freinage">Freinage</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date intervention <span class="required">*</span></label>
+                <input type="date" class="form-control" id="repair-date" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Kilométrage (km) <span class="required">*</span></label>
+                <input type="number" class="form-control" id="repair-km" required placeholder="Ex: 45000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Montant HT (TND)</label>
+                <input type="number" class="form-control" id="repair-montant" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Désignation / Description</label>
+              <textarea class="form-control" id="repair-designation" rows="3" placeholder="Décrivez l'intervention..."></textarea>
+            </div>
+
+            <div class="form-group" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-top:8px;">
+              <label class="form-label" style="color:#0369a1;font-weight:700;">📅 Mise à jour automatique des seuils</label>
+              <p style="font-size:12px;color:var(--secondary);margin-bottom:12px;">Ces valeurs mettront à jour le véhicule automatiquement.</p>
+              <div class="form-row">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Prochaine vidange (km)</label>
+                  <input type="number" class="form-control" id="repair-next-vidange" placeholder="Ex: 50000">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Prochaine chaîne (km)</label>
+                  <input type="number" class="form-control" id="repair-next-chaine" placeholder="Ex: 55000">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Prochaine visite tech. (date)</label>
+                  <input type="date" class="form-control" id="repair-next-visite">
+                </div>
+              </div>
+            </div>
+
+            <div class="btn-group" style="margin-top:24px;">
+              <button type="submit" class="btn btn-primary"><span>💾</span> Enregistrer</button>
+              <button type="button" class="btn btn-secondary" onclick="showTab('repairs')">Annuler</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- PARAMÈTRES -->
+    <div id="tab-settings" class="tab-content">
+      <h1 class="page-title">Paramètres</h1>
+      <p class="page-subtitle">Configuration du système</p>
+
+      <div class="card" style="max-width:600px;">
+        <div class="card-header">
+          <span class="card-title">⚙️ Seuils d'alertes</span>
+        </div>
+        <div class="card-body">
+          <form id="settings-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Alerte vidange (km avant)</label>
+                <input type="number" class="form-control" id="setting-alerte-vidange" value="1000">
+                <small style="color:var(--secondary);">km avant l'échéance</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alerte chaîne (km avant)</label>
+                <input type="number" class="form-control" id="setting-alerte-chaine" value="1000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alerte visite tech. (jours avant)</label>
+                <input type="number" class="form-control" id="setting-alerte-visite" value="7">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom de l'entreprise</label>
+              <input type="text" class="form-control" id="setting-entreprise" value="Tunisie Telecom">
+            </div>
+            <div class="btn-group" style="margin-top:24px;">
+              <button type="submit" class="btn btn-primary"><span>💾</span> Sauvegarder</button>
+              <button type="button" class="btn btn-secondary" onclick="exportData()"><span>📤</span> Exporter JSON</button>
+              <button type="button" class="btn btn-secondary" onclick="exportCSV()" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;"><span>📊</span> Exporter Excel/CSV</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:600px;margin-top:24px;">
+        <div class="card-header">
+          <span class="card-title">📥 Importation de données</span>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom:16px;color:var(--secondary);font-size:14px;">
+            Importez un fichier JSON précédemment exporté pour restaurer vos données.
+          </p>
+          <button class="btn btn-secondary" onclick="importData()"><span>📥</span> Sélectionner un fichier</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL VÉHICULE -->
+<div class="modal-overlay" id="vehicle-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="vehicle-modal-title">Nouveau Véhicule</span>
+      <button class="modal-close" onclick="closeModal('vehicle-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="vehicle-form">
+        <input type="hidden" id="vehicle-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Matricule <span class="required">*</span></label>
+            <input type="text" class="form-control" id="vehicle-matricule" placeholder="Ex: 17-356835">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Modèle <span class="required">*</span></label>
+            <input type="text" class="form-control" id="vehicle-modele" placeholder="Ex: Peugeot 301">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chauffeur</label>
+          <input type="text" class="form-control" id="vehicle-chauffeur" placeholder="Nom complet du chauffeur">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🪪 Matricule Agent <span style="font-size:11px;color:#64748b;font-weight:400;">(identifiant RH de l'agent)</span> <span class="required">*</span></label>
+          <input type="text" class="form-control" id="vehicle-agent-matricule"
+            placeholder="Ex: 12345 ou A-12345"
+            style="font-family:'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase;"
+            oninput="this.value=this.value.toUpperCase()">
+          <small style="color:#94a3b8;font-size:11px;margin-top:4px;display:block;">L'agent utilise ce matricule pour se connecter et accéder à ce véhicule uniquement.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📲 N° WhatsApp du chauffeur <span style="font-size:11px;color:#64748b;font-weight:400;">(format international, ex: 21698230530)</span></label>
+          <input type="tel" class="form-control" id="vehicle-whatsapp" placeholder="216XXXXXXXX" style="font-family:'IBM Plex Mono',monospace;letter-spacing:1px;">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kilométrage actuel (km)</label>
+            <input type="number" class="form-control" id="vehicle-km" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prochaine vidange (km)</label>
+            <input type="number" class="form-control" id="vehicle-vidange" placeholder="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Prochaine chaîne (km)</label>
+            <input type="number" class="form-control" id="vehicle-chaine" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prochaine visite technique</label>
+            <input type="date" class="form-control" id="vehicle-visite">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">🔋 Date changement batterie</label>
+            <input type="date" class="form-control" id="vehicle-batterie-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">🔋 Indice / Référence batterie</label>
+            <input type="text" class="form-control" id="vehicle-batterie-index" placeholder="Ex: 60Ah / L2">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🛞 Date changement pneus</label>
+          <input type="date" class="form-control" id="vehicle-pneus-date">
+        </div>
+        <div class="modal-footer" style="padding:16px 0 0;border:none;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('vehicle-modal')">Annuler</button>
+          <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  // Vérification admin synchrone sur localStorage brut (avant init async)
+  (function() {
+    try {
+      const raw = localStorage.getItem('parcAutoData_v3');
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && d.currentUser && d.currentUser.role === 'admin') return; // OK
+      }
+      // Pas de session admin valide → retour accueil
+      window.location.replace('index.html');
+    } catch(e) {
+      window.location.replace('index.html');
+    }
+  })();
+
+  // Mobile sidebar
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('active');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+  }
+
+  // Auto-fill chauffeur when selecting vehicle
+  ParcAutoApp.prototype.autofillChauffeur = function() {
+    const mat = document.getElementById('repair-matricule').value;
+    const v = this.data.vehicles.find(v => v.matricule === mat);
+    if (v && v.chauffeur) {
+      document.getElementById('repair-chauffeur').value = v.chauffeur;
+    }
+  };
+
+  // Override renderStats for TT colored KPI cards
+  const _origRenderStats = ParcAutoApp.prototype.renderStats;
+  ParcAutoApp.prototype.renderStats = function() {
+    const container = document.getElementById('stats-container');
+    if (!container) return;
+
+    const total   = this.data.vehicles.length;
+    const active  = this.data.vehicles.filter(v => v.statut === 'actif').length;
+    const alerts  = this.getAlerts().length;
+    const repairs = this.data.repairs.length;
+    const totalCost = this.data.repairs.reduce((s, r) => s + (r.montant || 0), 0);
+
+    // Mini bar data: last 5 repairs cost
+    const recent5 = [...this.data.repairs]
+      .sort((a,b) => new Date(b.date)-new Date(a.date))
+      .slice(0,5)
+      .map(r => r.montant || 0);
+    const maxR = Math.max(...recent5, 1);
+
+    container.innerHTML = `
+      <div class="stat-card kpi-blue">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="stat-icon" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:22px;">🚗</div>
+          <div class="stat-info"><h3>${total}</h3><p>Véhicules</p></div>
+        </div>
+      </div>
+      <div class="stat-card kpi-green">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="stat-icon" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:22px;">✅</div>
+          <div class="stat-info"><h3>${active}</h3><p>Actifs</p></div>
+        </div>
+      </div>
+      <div class="stat-card kpi-orange">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="stat-icon" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:22px;">🔧</div>
+          <div class="stat-info"><h3>${repairs}</h3><p>Interventions</p></div>
+        </div>
+        <div class="mini-bar-chart">
+          ${recent5.map(v => `<div class="mini-bar" style="height:${Math.round((v/maxR)*100)}%"></div>`).join('')}
+        </div>
+      </div>
+      <div class="stat-card kpi-red">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="stat-icon" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:22px;">🚨</div>
+          <div class="stat-info"><h3>${alerts}</h3><p>Alertes actives</p></div>
+        </div>
+      </div>
+    `;
+  };
+
+  // Responsive dashboard grid
+  function adjustGrid() {
+    const g = document.getElementById('dashboard-grid');
+    if (!g) return;
+    g.style.gridTemplateColumns = window.innerWidth < 768 ? '1fr' : '1fr 1fr';
+  }
+  window.addEventListener('resize', adjustGrid);
+  adjustGrid();
+
+  // Override renderAlertsTable pour ajouter bouton PDF
+  const _origAlertsTable = ParcAutoApp.prototype.renderAlertsTable;
+  ParcAutoApp.prototype.renderAlertsTable = function() {
+    _origAlertsTable.call(this);
+    const tbody = document.getElementById('alerts-table-body');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+      const mat = row.querySelector('td strong');
+      if (mat) {
+        const td = document.createElement('td');
+        td.innerHTML = `<button onclick="exportVehiclePDF('${mat.textContent}')"
+          style="background:#1d4ed8;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">
+          📄 PDF
+        </button>`;
+        row.appendChild(td);
+      }
+    });
+  };
+
+  // resendOTP
+  function resendOTP(e) {
+    e.preventDefault();
+    const email = document.getElementById('admin-email').value.trim();
+    if (!email) return;
+    const otp = requestOTP(email);
+    if (parcAuto) parcAuto.showToast('📱 Nouveau code OTP (démo: ' + otp + ')', 'info');
+  }
+</script>
+  <script src="drive-integration.js"></script>
+</body>
+</html>
