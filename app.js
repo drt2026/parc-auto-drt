@@ -1582,7 +1582,7 @@ class ParcAutoApp {
   initHomePage() {}
 
   // ============================================
-  // LOGIN ADMIN
+  // LOGIN ADMIN — ÉTAPE 1 : password  →  ÉTAPE 2 : OTP
   // ============================================
   initAdminLogin() {
     const form = document.getElementById('admin-login-form');
@@ -1590,20 +1590,55 @@ class ParcAutoApp {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('admin-email').value.trim();
+      const email    = document.getElementById('admin-email').value.trim();
       const password = document.getElementById('admin-password').value;
+      const submitBtn = form.querySelector('button[type="submit"]');
 
+      // ── Protection anti-brute-force : login verrouillé ? ──
+      if (_isLoginLocked()) {
+        const minLeft = Math.ceil((OTP_CONFIG.loginLockedUntil - Date.now()) / 60000);
+        this.showToast(`🔒 Trop de tentatives. Réessayez dans ${minLeft} min.`, 'error');
+        return;
+      }
+
+      // ── Étape 1 : vérifier email + password ──
       const user = ADMIN_USERS.find(u => u.email === email && u.password === password);
 
-      if (user) {
-        this.data.currentUser = { email: user.email, role: user.role, name: user.name };
-        this.data.userVehicle = null;
-        await this.saveData();
-        this.showToast('Connexion administrateur réussie', 'success');
-        setTimeout(() => { window.location.href = 'admin.html'; }, 500);
-      } else {
-        this.showToast('Email ou mot de passe incorrect', 'error');
+      if (!user) {
+        OTP_CONFIG.loginFailures++;
+
+        if (OTP_CONFIG.loginFailures >= OTP_CONFIG.maxLoginFailures) {
+          OTP_CONFIG.loginLockedUntil = Date.now() + OTP_CONFIG.lockoutDuration;
+          const minLeft = Math.ceil(OTP_CONFIG.lockoutDuration / 60000);
+          this.showToast(`🔒 Compte verrouillé après ${OTP_CONFIG.maxLoginFailures} échecs. Réessayez dans ${minLeft} min.`, 'error');
+        } else {
+          const restantes = OTP_CONFIG.maxLoginFailures - OTP_CONFIG.loginFailures;
+          this.showToast(`❌ Email ou mot de passe incorrect (${restantes} tentative(s) restante(s))`, 'error');
+        }
+        return;
       }
+
+      // ── Étape 2 : envoyer OTP ──
+      submitBtn.disabled = true;
+      submitBtn.textContent = '📱 Envoi OTP...';
+
+      const otpResult = requestOTP(email);
+      if (!otpResult.ok) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Se connecter';
+        this.showToast(otpResult.msg, 'error');
+        return;
+      }
+
+      // Stocker l'utilisateur en attente (sera finalisé après OTP)
+      window._otpPendingUser = user;
+
+      this.showToast(`📱 Code OTP envoyé via WhatsApp`, 'success');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Se connecter';
+
+      // Afficher le modal OTP
+      showOTPModal(email);
     });
   }
 
@@ -3160,46 +3195,458 @@ function exportVehiclePDF(matricule) {
 }
 
 // ============================================
-// 3. DOUBLE AUTHENTIFICATION OTP (Admin)
+// 3. DOUBLE AUTHENTIFICATION OTP (Admin) — VERSION SÉCURISÉE
 // ============================================
+
+/**
+ * CONFIGURATION OTP
+ * - whatsapp : numéro WhatsApp de l'admin (format international sans +)
+ * - maxAttempts : tentatives max avant verrouillage
+ * - expiry : durée de validité en ms (5 min)
+ * - lockoutDuration : durée verrouillage en ms (15 min)
+ * - bruteForce : protection anti-brute-force globale (tentatives/login échoués)
+ */
 const OTP_CONFIG = {
+  // ── état courant de la session OTP ──
   code: null,
   expiry: null,
   attempts: 0,
-  maxAttempts: 3
+  maxAttempts: 3,
+  pendingEmail: null,
+
+  // ── verrouillage de compte ──
+  lockedUntil: null,
+  lockoutDuration: 15 * 60 * 1000, // 15 min
+
+  // ── anti-brute-force : échecs de password avant verrouillage ──
+  loginFailures: 0,
+  maxLoginFailures: 5,
+  loginLockedUntil: null,
+
+  // ── canal d'envoi ──
+  // Numéro WhatsApp de l'admin (reçoit tous les OTP)
+  adminWhatsApp: '21698230530',
+
+  // ── timer countdown affiché dans l'UI ──
+  _countdownTimer: null
 };
 
+// ── Génération cryptographiquement sûre ──
 function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // Utilise crypto.getRandomValues si disponible, sinon fallback Math.random
+  if (window.crypto && window.crypto.getRandomValues) {
+    const arr = new Uint32Array(1);
+    window.crypto.getRandomValues(arr);
+    return String(100000 + (arr[0] % 900000));
+  }
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-function simulateSendOTP(email, otp) {
-  // En production: appel API SMS/Email
-  // Pour démo: afficher dans console + alerte discrète
-  console.log(`📱 OTP pour ${email}: ${otp}`);
-  // Stocker temporairement pour la démo
-  sessionStorage.setItem('_demo_otp', otp);
+// ── Envoi OTP via WhatsApp Web (ouvre wa.me) ──
+function sendOTPWhatsApp(email, otp) {
+  const expiryMin = Math.round((OTP_CONFIG.expiry - Date.now()) / 60000);
+  const msg =
+    `🔐 *CODE OTP — Parc Auto DRT Sfax*\n\n` +
+    `Demande de connexion Admin pour : *${email}*\n\n` +
+    `🔑 Votre code de vérification :\n\n` +
+    `   *${otp}*\n\n` +
+    `⏱️ Valide ${expiryMin} minutes.\n` +
+    `⚠️ Ne partagez ce code avec personne.\n\n` +
+    `_Si vous n'avez pas demandé ce code, ignorez ce message._\n` +
+    `_Parc Auto DRT Sfax — Tunisie Telecom_`;
+
+  const phone = OTP_CONFIG.adminWhatsApp.replace(/\D/g, '');
+  const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+
+  // Ouvrir WhatsApp dans un nouvel onglet
+  const w = window.open(waUrl, '_blank');
+
+  // Fallback : si le popup est bloqué, afficher un bouton dans l'UI
+  if (!w || w.closed || typeof w.closed === 'undefined') {
+    _showOTPFallbackButton(waUrl, otp);
+  }
 }
 
+// ── Fallback si popup bloqué ──
+function _showOTPFallbackButton(waUrl, otp) {
+  const fb = document.getElementById('otp-fallback');
+  if (fb) {
+    fb.style.display = 'block';
+    fb.innerHTML = `
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:14px;margin-top:12px;font-size:13px;color:#856404;">
+        ⚠️ Popup bloqué — <a href="${waUrl}" target="_blank" style="color:#0d6efd;font-weight:700;">Cliquez ici pour recevoir le code WhatsApp</a>
+        <br><small style="color:#6c757d;margin-top:4px;display:block;">Ou consultez la console (F12) pour le code de démo.</small>
+      </div>`;
+  }
+  // Toujours logguer en console pour la démo / debug
+  console.log(`%c📱 OTP DEBUG [${new Date().toLocaleTimeString()}] : ${otp}`, 'color:#10b981;font-size:16px;font-weight:bold;');
+}
+
+// ── Démarrer le timer countdown dans l'UI ──
+function _startOTPCountdown() {
+  _stopOTPCountdown();
+  const el = document.getElementById('otp-countdown');
+  if (!el) return;
+
+  OTP_CONFIG._countdownTimer = setInterval(() => {
+    const remaining = Math.max(0, OTP_CONFIG.expiry - Date.now());
+    const min = Math.floor(remaining / 60000);
+    const sec = Math.floor((remaining % 60000) / 1000);
+    el.textContent = `⏱️ Code valide encore : ${min}:${sec.toString().padStart(2, '0')}`;
+    el.style.color = remaining < 60000 ? '#ef4444' : '#64748b';
+    if (remaining === 0) {
+      _stopOTPCountdown();
+      el.textContent = '⌛ Code expiré — veuillez en demander un nouveau.';
+      el.style.color = '#ef4444';
+    }
+  }, 1000);
+}
+
+function _stopOTPCountdown() {
+  if (OTP_CONFIG._countdownTimer) {
+    clearInterval(OTP_CONFIG._countdownTimer);
+    OTP_CONFIG._countdownTimer = null;
+  }
+}
+
+// ── Vérifier si le compte est verrouillé (OTP) ──
+function _isOTPLocked() {
+  if (!OTP_CONFIG.lockedUntil) return false;
+  if (Date.now() > OTP_CONFIG.lockedUntil) {
+    OTP_CONFIG.lockedUntil = null;
+    OTP_CONFIG.attempts = 0;
+    return false;
+  }
+  return true;
+}
+
+// ── Vérifier si le login est verrouillé (password) ──
+function _isLoginLocked() {
+  if (!OTP_CONFIG.loginLockedUntil) return false;
+  if (Date.now() > OTP_CONFIG.loginLockedUntil) {
+    OTP_CONFIG.loginLockedUntil = null;
+    OTP_CONFIG.loginFailures = 0;
+    return false;
+  }
+  return true;
+}
+
+// ── Demander un OTP (après vérification password) ──
 function requestOTP(email) {
+  if (_isOTPLocked()) {
+    const minLeft = Math.ceil((OTP_CONFIG.lockedUntil - Date.now()) / 60000);
+    return { ok: false, msg: `Compte verrouillé. Réessayez dans ${minLeft} min.` };
+  }
+
   const otp = generateOTP();
-  OTP_CONFIG.code = otp;
-  OTP_CONFIG.expiry = Date.now() + 5 * 60 * 1000; // 5 min
+  OTP_CONFIG.code    = otp;
+  OTP_CONFIG.expiry  = Date.now() + 5 * 60 * 1000; // 5 min
   OTP_CONFIG.attempts = 0;
-  simulateSendOTP(email, otp);
-  return otp;
+  OTP_CONFIG.pendingEmail = email;
+
+  sendOTPWhatsApp(email, otp);
+  _startOTPCountdown();
+
+  return { ok: true };
 }
 
+// ── Vérifier le code OTP saisi ──
 function verifyOTP(inputCode) {
-  if (!OTP_CONFIG.code || !OTP_CONFIG.expiry) return { ok: false, msg: 'Aucun code généré' };
-  if (Date.now() > OTP_CONFIG.expiry) return { ok: false, msg: 'Code expiré. Recommencez.' };
-  OTP_CONFIG.attempts++;
-  if (OTP_CONFIG.attempts > OTP_CONFIG.maxAttempts) return { ok: false, msg: 'Trop de tentatives.' };
-  if (inputCode.trim() === OTP_CONFIG.code) {
+  if (_isOTPLocked()) {
+    const minLeft = Math.ceil((OTP_CONFIG.lockedUntil - Date.now()) / 60000);
+    return { ok: false, msg: `Compte verrouillé après trop de tentatives. Réessayez dans ${minLeft} min.` };
+  }
+
+  if (!OTP_CONFIG.code || !OTP_CONFIG.expiry) {
+    return { ok: false, msg: 'Aucun code OTP actif. Veuillez recommencer.' };
+  }
+
+  if (Date.now() > OTP_CONFIG.expiry) {
     OTP_CONFIG.code = null;
+    _stopOTPCountdown();
+    return { ok: false, msg: '⌛ Code expiré. Veuillez demander un nouveau code.' };
+  }
+
+  OTP_CONFIG.attempts++;
+
+  if (OTP_CONFIG.attempts > OTP_CONFIG.maxAttempts) {
+    // Verrouiller le compte OTP
+    OTP_CONFIG.lockedUntil = Date.now() + OTP_CONFIG.lockoutDuration;
+    OTP_CONFIG.code = null;
+    _stopOTPCountdown();
+    const minLeft = Math.ceil(OTP_CONFIG.lockoutDuration / 60000);
+    return { ok: false, msg: `🔒 Trop de tentatives. Compte verrouillé ${minLeft} min.` };
+  }
+
+  if (inputCode.trim() === OTP_CONFIG.code) {
+    // Succès — invalider le code immédiatement (usage unique)
+    OTP_CONFIG.code = null;
+    OTP_CONFIG.expiry = null;
+    OTP_CONFIG.attempts = 0;
+    OTP_CONFIG.loginFailures = 0; // reset aussi les échecs de login
+    _stopOTPCountdown();
     return { ok: true };
   }
-  return { ok: false, msg: `Code incorrect. ${OTP_CONFIG.maxAttempts - OTP_CONFIG.attempts} essai(s) restant(s).` };
+
+  const restantes = OTP_CONFIG.maxAttempts - OTP_CONFIG.attempts;
+  return { ok: false, msg: `❌ Code incorrect. ${restantes} tentative(s) restante(s).` };
+}
+
+// ── Réinitialiser tout l'état OTP (ex: annulation) ──
+function resetOTP() {
+  OTP_CONFIG.code = null;
+  OTP_CONFIG.expiry = null;
+  OTP_CONFIG.attempts = 0;
+  OTP_CONFIG.pendingEmail = null;
+  _stopOTPCountdown();
+}
+
+// ── Afficher le modal OTP (appelé depuis initAdminLogin) ──
+function showOTPModal(email) {
+  // Supprimer un éventuel modal existant
+  document.getElementById('otp-modal-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'otp-modal-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:99999;
+    background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);
+    display:flex;align-items:center;justify-content:center;padding:20px;`;
+
+  overlay.innerHTML = `
+    <div id="otp-modal-box" style="
+      background:#fff;border-radius:20px;padding:36px 28px;
+      max-width:400px;width:100%;
+      box-shadow:0 32px 80px rgba(0,0,0,0.35);
+      animation:otp-pop .25s cubic-bezier(.34,1.56,.64,1);
+      position:relative;">
+
+      <style>
+        @keyframes otp-pop {
+          from { transform:scale(.85) translateY(20px); opacity:0; }
+          to   { transform:scale(1)   translateY(0);    opacity:1; }
+        }
+        #otp-inputs { display:flex; gap:10px; justify-content:center; margin:24px 0; }
+        .otp-digit {
+          width:46px; height:56px; font-size:24px; font-weight:700;
+          text-align:center; border:2px solid #e2e8f0; border-radius:12px;
+          color:#1e293b; outline:none; transition:border-color .2s, box-shadow .2s;
+          -webkit-appearance:none; background:#f8fafc;
+        }
+        .otp-digit:focus { border-color:#ef4444; box-shadow:0 0 0 3px rgba(239,68,68,.15); background:#fff; }
+        .otp-digit.filled { border-color:#22c55e; background:#f0fdf4; }
+        .otp-digit.error  { border-color:#ef4444; background:#fef2f2; animation:shake .3s; }
+        @keyframes shake {
+          0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+        }
+        #btn-verify-otp {
+          width:100%; padding:14px; border:none; border-radius:12px;
+          background:linear-gradient(135deg,#ef4444,#f97316);
+          color:#fff; font-size:15px; font-weight:700; cursor:pointer;
+          box-shadow:0 4px 16px rgba(239,68,68,.3); transition:opacity .2s;
+        }
+        #btn-verify-otp:disabled { opacity:.5; cursor:not-allowed; }
+        #btn-resend-otp {
+          background:none; border:none; color:#3b82f6; font-size:13px;
+          cursor:pointer; text-decoration:underline; padding:4px 0;
+        }
+        #btn-resend-otp:disabled { color:#94a3b8; cursor:not-allowed; text-decoration:none; }
+        #otp-error-msg { color:#ef4444; font-size:13px; min-height:20px; text-align:center; margin-top:-8px; }
+      </style>
+
+      <!-- Icône & titre -->
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:52px;margin-bottom:10px;">🔐</div>
+        <h2 style="font-size:20px;font-weight:700;color:#1e293b;margin:0 0 6px;">Vérification en 2 étapes</h2>
+        <p style="font-size:13px;color:#64748b;line-height:1.6;">
+          Un code OTP à 6 chiffres a été envoyé via WhatsApp au numéro enregistré.<br>
+          <strong style="color:#1e293b;">Connectez-vous à WhatsApp pour récupérer le code.</strong>
+        </p>
+      </div>
+
+      <!-- Timer countdown -->
+      <div id="otp-countdown" style="text-align:center;font-size:12px;color:#64748b;margin-bottom:4px;">⏱️ Chargement...</div>
+
+      <!-- 6 cases OTP -->
+      <div id="otp-inputs">
+        <input class="otp-digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code" data-idx="0">
+        <input class="otp-digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="1">
+        <input class="otp-digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="2">
+        <input class="otp-digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="3">
+        <input class="otp-digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="4">
+        <input class="otp-digit" type="tel" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="5">
+      </div>
+
+      <!-- Message d'erreur -->
+      <div id="otp-error-msg"></div>
+
+      <!-- Bouton valider -->
+      <button id="btn-verify-otp" disabled>Valider le code</button>
+
+      <!-- Renvoyer + annuler -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+        <button id="btn-resend-otp">🔄 Renvoyer le code</button>
+        <button onclick="cancelOTPLogin()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;">Annuler</button>
+      </div>
+
+      <!-- Fallback popup bloqué -->
+      <div id="otp-fallback"></div>
+
+      <!-- Indicateur tentatives -->
+      <div id="otp-attempts-bar" style="margin-top:16px;display:flex;gap:6px;justify-content:center;">
+        <span style="font-size:11px;color:#94a3b8;">Tentatives :</span>
+        <span class="otp-dot" style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+        <span class="otp-dot" style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+        <span class="otp-dot" style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // ── Logique des 6 cases ──
+  const digits = overlay.querySelectorAll('.otp-digit');
+  const btnVerify = overlay.querySelector('#btn-verify-otp');
+  const errorMsg  = overlay.querySelector('#otp-error-msg');
+  const dots      = overlay.querySelectorAll('.otp-dot');
+
+  function getCode() {
+    return Array.from(digits).map(d => d.value).join('');
+  }
+
+  function updateDots() {
+    dots.forEach((dot, i) => {
+      dot.style.background = i < OTP_CONFIG.attempts ? '#ef4444' : '#22c55e';
+    });
+  }
+
+  function setError(msg) {
+    errorMsg.textContent = msg;
+    digits.forEach(d => d.classList.add('error'));
+    setTimeout(() => digits.forEach(d => d.classList.remove('error')), 500);
+    updateDots();
+  }
+
+  digits.forEach((input, idx) => {
+    input.addEventListener('input', (e) => {
+      // Accepter chiffre seulement
+      input.value = input.value.replace(/\D/g, '').slice(-1);
+      if (input.value) {
+        input.classList.add('filled');
+        if (idx < 5) digits[idx + 1].focus();
+      } else {
+        input.classList.remove('filled');
+      }
+      // Activer le bouton si 6 chiffres
+      btnVerify.disabled = getCode().length < 6;
+      errorMsg.textContent = '';
+    });
+
+    // Gestion paste (coller le code d'un coup)
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      pasted.split('').forEach((ch, i) => {
+        if (digits[i]) { digits[i].value = ch; digits[i].classList.add('filled'); }
+      });
+      if (pasted.length > 0) digits[Math.min(pasted.length, 5)].focus();
+      btnVerify.disabled = getCode().length < 6;
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) {
+        digits[idx - 1].focus();
+        digits[idx - 1].value = '';
+        digits[idx - 1].classList.remove('filled');
+      }
+      if (e.key === 'Enter' && getCode().length === 6) {
+        btnVerify.click();
+      }
+    });
+  });
+
+  // Focus auto sur la première case
+  setTimeout(() => digits[0].focus(), 100);
+
+  // ── Valider le code ──
+  btnVerify.addEventListener('click', async () => {
+    const code = getCode();
+    if (code.length < 6) return;
+
+    btnVerify.disabled = true;
+    btnVerify.textContent = '⏳ Vérification...';
+
+    const result = verifyOTP(code);
+    if (result.ok) {
+      // Succès OTP — finaliser la connexion
+      overlay.remove();
+      if (window.parcAuto && window._otpPendingUser) {
+        const user = window._otpPendingUser;
+        window._otpPendingUser = null;
+        parcAuto.data.currentUser = { email: user.email, role: user.role, name: user.name };
+        parcAuto.data.userVehicle = null;
+        await parcAuto.saveData();
+        parcAuto.showToast('✅ Double authentification réussie — Bienvenue !', 'success');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 600);
+      }
+    } else {
+      setError(result.msg);
+      btnVerify.disabled = false;
+      btnVerify.textContent = 'Valider le code';
+      // Vider les cases si code incorrect
+      digits.forEach(d => { d.value = ''; d.classList.remove('filled'); });
+      digits[0].focus();
+    }
+  });
+
+  // ── Renvoi OTP (avec cooldown 30s) ──
+  const btnResend = overlay.querySelector('#btn-resend-otp');
+  let resendCooldown = 30;
+
+  function startResendCooldown() {
+    btnResend.disabled = true;
+    const iv = setInterval(() => {
+      resendCooldown--;
+      btnResend.textContent = `🔄 Renvoyer (${resendCooldown}s)`;
+      if (resendCooldown <= 0) {
+        clearInterval(iv);
+        btnResend.disabled = false;
+        btnResend.textContent = '🔄 Renvoyer le code';
+        resendCooldown = 30;
+      }
+    }, 1000);
+  }
+
+  startResendCooldown();
+
+  btnResend.addEventListener('click', () => {
+    if (btnResend.disabled) return;
+    const email = OTP_CONFIG.pendingEmail;
+    if (!email) return;
+    const r = requestOTP(email);
+    if (r.ok) {
+      digits.forEach(d => { d.value = ''; d.classList.remove('filled'); });
+      digits[0].focus();
+      errorMsg.textContent = '';
+      btnVerify.disabled = true;
+      startResendCooldown();
+      if (window.parcAuto) parcAuto.showToast('📱 Nouveau code envoyé via WhatsApp', 'info');
+    } else {
+      errorMsg.textContent = r.msg;
+    }
+  });
+}
+
+// ── Annuler la connexion OTP ──
+function cancelOTPLogin() {
+  resetOTP();
+  window._otpPendingUser = null;
+  document.getElementById('otp-modal-overlay')?.remove();
+  // Réafficher le formulaire de login
+  const form = document.getElementById('admin-login-form');
+  if (form) {
+    form.querySelector('button[type="submit"]').disabled = false;
+    form.querySelector('button[type="submit"]').textContent = 'Se connecter';
+  }
 }
 
 
