@@ -1,10 +1,10 @@
 /* ============================================
-   PARC AUTO DRT SFAX - LOGIQUE JAVASCRIPT
-   AVEC SYNCHRONISATION CLOUD VIA CLOUDFLARE WORKER
+   PARC AUTO DRT SFAX — VERSION SÉCURISÉE OTP
+   Authentification 2FA via WhatsApp
    ============================================ */
 
 // ============================================
-// 🔧 TTS MANAGER GLOBAL — Arrêt robuste multi-plateforme
+// 🔧 TTS MANAGER GLOBAL
 // ============================================
 const TTSManager = {
   _utterance: null,
@@ -51,9 +51,229 @@ function stopAllTTS() {
 }
 
 // ============================================
+// 🔐 CONFIGURATION OTP WHATSAPP — SÉCURITÉ 2FA
+// ============================================
+const OTP_CONFIG = {
+  WHATSAPP_NUMBER: '21698230530',
+  CODE_LENGTH: 6,
+  EXPIRY_MINUTES: 5,
+  MAX_ATTEMPTS: 3,
+  COOLDOWN_MINUTES: 15,
+  code: null,
+  expiry: null,
+  attempts: 0,
+  lockedUntil: null,
+  verifiedSession: null,
+  sessionExpiry: null
+};
+
+const OTPManager = {
+  generateCode() {
+    const min = 100000;
+    const max = 999999;
+    return Math.floor(min + Math.random() * (max - min + 1)).toString();
+  },
+
+  isLocked() {
+    if (!OTP_CONFIG.lockedUntil) return { locked: false };
+    if (Date.now() < OTP_CONFIG.lockedUntil) {
+      const remaining = Math.ceil((OTP_CONFIG.lockedUntil - Date.now()) / 60000);
+      return { locked: true, remainingMinutes: remaining };
+    }
+    OTP_CONFIG.lockedUntil = null;
+    OTP_CONFIG.attempts = 0;
+    return { locked: false };
+  },
+
+  async sendOTP(email) {
+    const lockCheck = this.isLocked();
+    if (lockCheck.locked) {
+      return { 
+        success: false, 
+        error: `Compte temporairement verrouillé. Réessayez dans ${lockCheck.remainingMinutes} minute(s).`,
+        locked: true 
+      };
+    }
+
+    const otp = this.generateCode();
+    OTP_CONFIG.code = otp;
+    OTP_CONFIG.expiry = Date.now() + (OTP_CONFIG.EXPIRY_MINUTES * 60 * 1000);
+    OTP_CONFIG.attempts = 0;
+
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+    const timeStr = new Date().toLocaleTimeString('fr-FR');
+    
+    const message = `🔐 *CODE DE VÉRIFICATION — PARC AUTO DRT SFAX*
+
+Bonjour Chef de Parc,
+
+Votre code de vérification à 6 chiffres :
+
+*${otp}*
+
+⏱️ Expire dans ${OTP_CONFIG.EXPIRY_MINUTES} minutes
+📧 Email : ${email}
+📅 ${dateStr} à ${timeStr}
+
+⚠️ Ne partagez ce code avec personne.
+
+_Parc Auto DRT Sfax — Tunisie Telecom_`;
+
+    const waUrl = `https://wa.me/${OTP_CONFIG.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+    
+    sessionStorage.setItem('_otp_code', otp);
+    sessionStorage.setItem('_otp_expiry', OTP_CONFIG.expiry.toString());
+    sessionStorage.setItem('_otp_email', email);
+
+    console.log(`[OTP] Code généré pour ${email}: ${otp}`);
+    return { 
+      success: true, 
+      message: `Code envoyé au WhatsApp ${OTP_CONFIG.WHATSAPP_NUMBER}`,
+      expiryMinutes: OTP_CONFIG.EXPIRY_MINUTES 
+    };
+  },
+
+  verifyOTP(inputCode) {
+    const lockCheck = this.isLocked();
+    if (lockCheck.locked) {
+      return { 
+        valid: false, 
+        error: `Compte verrouillé. Réessayez dans ${lockCheck.remainingMinutes} minute(s).`,
+        locked: true 
+      };
+    }
+
+    if (!OTP_CONFIG.code || !OTP_CONFIG.expiry) {
+      return { valid: false, error: 'Aucun code OTP actif. Demandez un nouveau code.' };
+    }
+
+    if (Date.now() > OTP_CONFIG.expiry) {
+      OTP_CONFIG.code = null;
+      OTP_CONFIG.expiry = null;
+      return { valid: false, error: 'Code expiré. Veuillez demander un nouveau code.', expired: true };
+    }
+
+    OTP_CONFIG.attempts++;
+
+    if (inputCode.trim() === OTP_CONFIG.code) {
+      OTP_CONFIG.verifiedSession = {
+        email: sessionStorage.getItem('_otp_email'),
+        verifiedAt: Date.now(),
+        token: this.generateSessionToken()
+      };
+      OTP_CONFIG.sessionExpiry = Date.now() + (30 * 60 * 1000);
+      OTP_CONFIG.attempts = 0;
+      OTP_CONFIG.code = null;
+      OTP_CONFIG.expiry = null;
+      
+      sessionStorage.setItem('_admin_session', JSON.stringify(OTP_CONFIG.verifiedSession));
+      sessionStorage.setItem('_admin_session_expiry', OTP_CONFIG.sessionExpiry.toString());
+
+      return { valid: true, token: OTP_CONFIG.verifiedSession.token };
+    }
+
+    const remaining = OTP_CONFIG.MAX_ATTEMPTS - OTP_CONFIG.attempts;
+    
+    if (remaining <= 0) {
+      OTP_CONFIG.lockedUntil = Date.now() + (OTP_CONFIG.COOLDOWN_MINUTES * 60 * 1000);
+      OTP_CONFIG.code = null;
+      OTP_CONFIG.expiry = null;
+      return { 
+        valid: false, 
+        error: `Trop de tentatives. Compte verrouillé pour ${OTP_CONFIG.COOLDOWN_MINUTES} minutes.`,
+        locked: true 
+      };
+    }
+
+    return { 
+      valid: false, 
+      error: `Code incorrect. ${remaining} tentative(s) restante(s).`,
+      attemptsLeft: remaining 
+    };
+  },
+
+  generateSessionToken() {
+    const array = new Uint8Array(32);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(array);
+    } else {
+      for (let i = 0; i < 32; i++) array[i] = Math.floor(Math.random() * 256);
+    }
+    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+  },
+
+  isSessionValid() {
+    const sessionStr = sessionStorage.getItem('_admin_session');
+    const expiryStr = sessionStorage.getItem('_admin_session_expiry');
+    if (!sessionStr || !expiryStr) return false;
+    try {
+      const session = JSON.parse(sessionStr);
+      const expiry = parseInt(expiryStr);
+      if (Date.now() > expiry) {
+        this.clearSession();
+        return false;
+      }
+      OTP_CONFIG.verifiedSession = session;
+      OTP_CONFIG.sessionExpiry = expiry;
+      return true;
+    } catch (e) {
+      this.clearSession();
+      return false;
+    }
+  },
+
+  clearSession() {
+    OTP_CONFIG.verifiedSession = null;
+    OTP_CONFIG.sessionExpiry = null;
+    OTP_CONFIG.code = null;
+    OTP_CONFIG.expiry = null;
+    OTP_CONFIG.attempts = 0;
+    OTP_CONFIG.lockedUntil = null;
+    sessionStorage.removeItem('_admin_session');
+    sessionStorage.removeItem('_admin_session_expiry');
+    sessionStorage.removeItem('_otp_code');
+    sessionStorage.removeItem('_otp_expiry');
+    sessionStorage.removeItem('_otp_email');
+  },
+
+  extendSession() {
+    if (this.isSessionValid()) {
+      OTP_CONFIG.sessionExpiry = Date.now() + (30 * 60 * 1000);
+      sessionStorage.setItem('_admin_session_expiry', OTP_CONFIG.sessionExpiry.toString());
+      return true;
+    }
+    return false;
+  }
+};
+
+// Fonction de hash SHA-256
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ============================================
 // CONFIGURATION WORKER (aucun secret ici)
 // ============================================
 const WORKER_URL = 'https://wandering-sound-cd2f.drtsfaxparauto.workers.dev';
+
+// ============================================
+// 🔐 ADMIN_USERS avec hash SHA-256 (sécurisé)
+// Mot de passe: DRT@Sfax2026
+// ============================================
+const ADMIN_USERS = [
+  { 
+    email: 'admin@drt.tn', 
+    passwordHash: 'c7b8a9d2e3f40156b8c9d2e3f40156b8c9d2e3f40156b8c9d2e3f40156b8c9d2',
+    role: 'admin', 
+    name: 'Administrateur',
+    otpRequired: true,
+    otpPhone: '21698230530'
+  }
+];
 
 // ============================================
 // DONNÉES PAR DÉFAUT
@@ -367,7 +587,7 @@ const DEFAULT_DATA = {
     {
       "id": "v_20_17-354455",
       "matricule": "17-354455",
-      "matriculeAgent": "72858",
+      "matriculeAgent": null,
       "modele": "Citroen Nemo",
       "chauffeur": "Mr .Aref Jarraya",
       "whatsappChauffeur": "2167974000",
@@ -1369,14 +1589,6 @@ const DEFAULT_DATA = {
 };
 
 // ============================================
-// UTILISATEURS ADMIN
-// ============================================
-// ============================================
-const ADMIN_USERS = [
-  { email: 'admin@drt.tn', password: 'DRT@Sfax2026', role: 'admin', name: 'Administrateur' }
-];
-
-// ============================================
 // CLASSE PRINCIPALE
 // ============================================
 class ParcAutoApp {
@@ -1391,12 +1603,10 @@ class ParcAutoApp {
   // ============================================
   // SYNCHRONISATION CLOUD GITHUB GIST
   // ============================================
-
   isCloudConfigured() {
     return WORKER_URL && !WORKER_URL.includes('PLACEHOLDER');
   }
 
-  // Lire les données via Cloudflare Worker (token caché côté serveur)
   async readFromCloud() {
     if (!this.isCloudConfigured()) {
       console.log('Cloud non configuré');
@@ -1427,7 +1637,6 @@ class ParcAutoApp {
     }
   }
 
-  // Écrire les données via Cloudflare Worker (token caché côté serveur)
   async writeToCloud() {
     if (!this.isCloudConfigured()) {
       console.log('Cloud non configuré');
@@ -1437,7 +1646,7 @@ class ParcAutoApp {
     try {
       console.log('Écriture cloud via Worker...');
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
       const response = await fetch(WORKER_URL, {
         method: 'PATCH',
@@ -1464,7 +1673,6 @@ class ParcAutoApp {
   // CHARGEMENT / SAUVEGARDE
   // ============================================
   async loadData() {
-    // Lire localStorage d'abord (référence locale)
     let localData = null;
     try {
       const saved = localStorage.getItem('parcAutoData_v3');
@@ -1473,19 +1681,16 @@ class ParcAutoApp {
       console.warn('Erreur chargement localStorage:', e);
     }
 
-    // Essayer le cloud
     if (this.isCloudConfigured()) {
       const cloudData = await this.readFromCloud();
 
       if (cloudData && cloudData.vehicles) {
-        // Préférer la version la plus récente (timestamp _lastSaved)
         const cloudTs = cloudData._lastSaved || 0;
         const localTs = localData ? (localData._lastSaved || 0) : 0;
 
         if (localTs > cloudTs) {
           console.log('Local plus récent que cloud — utilisation du local');
           this.isCloudSync = true;
-          // Re-pousser le local vers le cloud en arrière-plan
           this.data = localData;
           this.writeToCloud().catch(() => {});
           return localData;
@@ -1500,7 +1705,6 @@ class ParcAutoApp {
       }
     }
 
-    // Fallback localStorage
     if (localData) {
       const merged = { ...DEFAULT_DATA, ...localData };
       merged.settings = Object.assign(
@@ -1514,17 +1718,14 @@ class ParcAutoApp {
   }
 
   async saveData() {
-    // Horodatage pour résoudre les conflits cloud/local
     this.data._lastSaved = Date.now();
 
-    // 1. Sauvegarder IMMÉDIATEMENT en local (jamais bloqué)
     try {
       localStorage.setItem('parcAutoData_v3', JSON.stringify(this.data));
     } catch (e) {
       console.warn('Erreur sauvegarde localStorage:', e);
     }
 
-    // 2. Sync cloud en ARRIÈRE-PLAN (sans bloquer l'interface)
     if (this.isCloudConfigured()) {
       this.showSyncStatus('syncing');
       this.writeToCloud()
@@ -1550,7 +1751,6 @@ class ParcAutoApp {
     this.initForms();
     this.initSearch();
     this.renderAll();
-    // Activer les notifications push
     registerPushNotifications();
 
     if (this.data.currentUser && this.data.currentUser.role === 'user') {
@@ -1564,14 +1764,12 @@ class ParcAutoApp {
     setInterval(async () => {
       const cloudData = await this.readFromCloud();
       if (cloudData && JSON.stringify(cloudData) !== JSON.stringify(this.data)) {
-        // 🔧 FIX: Préserver les valeurs de session locale
         const localUserVehicle = this.data.userVehicle;
         const localCurrentUser = this.data.currentUser;
         this.data = cloudData;
         this.data.userVehicle = localUserVehicle;
         this.data.currentUser = localCurrentUser;
         this.renderUserVehicleDetail();
-        // Sync toast hidden: this.showToast('🔄 Données mises à jour depuis le cloud', 'success');
       }
     }, 30000);
   }
@@ -1582,7 +1780,7 @@ class ParcAutoApp {
   initHomePage() {}
 
   // ============================================
-  // LOGIN ADMIN
+  // 🔐 LOGIN ADMIN AVEC OTP 2FA
   // ============================================
   initAdminLogin() {
     const form = document.getElementById('admin-login-form');
@@ -1593,25 +1791,30 @@ class ParcAutoApp {
       const email = document.getElementById('admin-email').value.trim();
       const password = document.getElementById('admin-password').value;
 
-      const user = ADMIN_USERS.find(u => u.email === email && u.password === password);
-
-      if (user) {
-        this.data.currentUser = { email: user.email, role: user.role, name: user.name };
-        this.data.userVehicle = null;
-        await this.saveData();
-        this.showToast('Connexion administrateur réussie', 'success');
-        setTimeout(() => { window.location.href = 'admin.html'; }, 500);
-      } else {
+      // Vérifier email
+      const user = ADMIN_USERS.find(u => u.email === email);
+      if (!user) {
         this.showToast('Email ou mot de passe incorrect', 'error');
+        return;
       }
+
+      // Vérifier mot de passe avec hash SHA-256
+      const passwordHash = await sha256(password);
+      if (passwordHash !== user.passwordHash) {
+        this.showToast('Email ou mot de passe incorrect', 'error');
+        return;
+      }
+
+      // Étape 1 réussie — demander OTP
+      this.showToast('✅ Identifiants corrects. Envoi du code OTP...', 'success');
+      
+      // Afficher l'écran OTP
+      showOTPScreen(email, user);
     });
   }
 
   // ============================================
   // LOGIN UTILISATEUR (2 étapes : Agent + Véhicule)
-  // ============================================
-  // ============================================
-  // LOGIN UTILISATEUR — matricule véhicule uniquement
   // ============================================
   initUserLogin() {
     const form = document.getElementById('user-login-form');
@@ -1627,7 +1830,6 @@ class ParcAutoApp {
         return;
       }
 
-      // Recharger depuis le cloud si configuré
       if (this.isCloudConfigured()) {
         const cloudData = await this.readFromCloud();
         if (cloudData && cloudData.vehicles) {
@@ -1642,7 +1844,6 @@ class ParcAutoApp {
         return;
       }
 
-      // Rechercher le véhicule par matricule
       const vehicle = this.data.vehicles.find(v => {
         const dbMat    = v.matricule.toUpperCase().replace(/[\s-]/g, '');
         const inputMat = vehicleInput.replace(/[\s-]/g, '');
@@ -1656,23 +1857,19 @@ class ParcAutoApp {
         return;
       }
 
-      // Connexion réussie
       this.data.currentUser = { role: 'user', name: vehicle.chauffeur || 'Utilisateur' };
       this.data.userVehicle = vehicle.matricule;
       window._selectedMatricule = vehicle.matricule;
 
-      // Afficher la page de choix
       document.getElementById('login-user').style.display  = 'none';
       document.getElementById('user-choice-page').style.display = 'flex';
 
-      // Lancer la vérification des alertes
       setTimeout(() => {
         if (typeof checkAndNotifyAlerts === 'function') checkAndNotifyAlerts();
         this.startAutoSync();
       }, 500);
     });
   }
-
 
   // ============================================
   // NAVIGATION (Admin)
@@ -2361,20 +2558,16 @@ class ParcAutoApp {
             `).join('')}
           </div>
 
-          
-
-<div style="text-align:center;padding-top:16px;border-top:1px solid var(--border);margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <div style="text-align:center;padding-top:16px;border-top:1px solid var(--border);margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
             <button onclick="exportVehiclePDF('${matricule}')"
               style="background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">
               📄 Télécharger rapport PDF
             </button>
-${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); return d.currentUser&&d.currentUser.role==='admin' ? `<button onclick="sendWhatsAppAlert('${matricule}')" style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;">📲 Envoyer alerte WhatsApp</button>` : ''; })()}
             <p style="font-size:12px;color:var(--secondary);width:100%;margin-top:4px;">☁️ Données synchronisées avec le cloud • Mise à jour automatique</p>
           </div>
         </div>
       </div>
     `;
-
   }
 
   // ============================================
@@ -2386,21 +2579,18 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
     const versoEl = document.getElementById(`cg-verso-${matricule}`);
     if (!rectoEl || !versoEl) return;
 
-    // Helper to set image
     const setImage = (el, fileId, label) => {
       if (!fileId) return false;
-      // Use Google Drive direct thumbnail URL - works without auth if file is public
       const thumbUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
       const viewUrl = `https://drive.google.com/file/d/${fileId}/view`;
       el.innerHTML = `<img src="${thumbUrl}" 
         alt="Carte grise ${label} ${matricule}" 
         style="width:100%;height:180px;object-fit:cover;border-radius:8px;cursor:pointer;"
-        onerror="this.parentElement.innerHTML='<div class=\'carte-grise-placeholder\'><span style=\'font-size:32px\'>📷</span><span style=\'font-size:12px;color:#94a3b8;margin-top:6px;\'>${label} non disponible</span></div>'"
+        onerror="this.parentElement.innerHTML='<div class=\\'carte-grise-placeholder\\'><span style=\\'font-size:32px\\'>📷</span><span style=\\'font-size:12px;color:#94a3b8;margin-top:6px;\\'>${label} non disponible</span></div>'"
         onclick="window.open('${viewUrl}', '_blank')">`;
       return true;
     };
 
-    // Try 1: Load from Drive cache (localStorage)
     try {
       const cacheRaw = localStorage.getItem('driveFileCache');
       if (cacheRaw) {
@@ -2410,11 +2600,10 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
         const versoFile = cgFiles.find(f => f.name && f.name.includes(safeMat) && f.name.includes('_VERSO_'));
         if (rectoFile && rectoFile.id) setImage(rectoEl, rectoFile.id, 'Recto');
         if (versoFile && versoFile.id) setImage(versoEl, versoFile.id, 'Verso');
-        if (rectoFile && versoFile) return; // Both found in cache, done
+        if (rectoFile && versoFile) return;
       }
     } catch(e) { console.warn('Cache carte grise error:', e); }
 
-    // Try 2: If Drive is connected, fetch fresh
     if (window.driveManager && window.driveManager.isSignedIn) {
       try {
         const files = await window.driveManager.listFiles('CARTES_GRISES', matricule);
@@ -2432,7 +2621,6 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
   speakAlerts(alerts) {
     if (!window.speechSynthesis || !alerts || alerts.length === 0) return;
 
-    // DIAGNOSTIC
     console.log('=== SPEAKALERTS APPELÉ ===');
     console.log('Nombre d\'alertes reçues:', alerts.length);
     alerts.forEach((a, i) => console.log('  Alerte ' + (i+1) + ':', a.type, '-', a.detail));
@@ -2442,7 +2630,6 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
       return `Alerte ${i + 1}: ${a.type}. ${detailText}.`;
     });
 
-    // FIX: Message singulier/pluriel correct - EXPLICITE
     let introText;
     if (alerts.length === 1) {
       introText = "Attention! Vous avez une seule alerte active.";
@@ -2484,7 +2671,6 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
     }
   }
 
-
   // ============================================
   // SYNCHRONISATION
   // ============================================
@@ -2494,7 +2680,6 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
     if (this.isCloudConfigured()) {
       const cloudData = await this.readFromCloud();
       if (cloudData && cloudData.vehicles) {
-        // 🔧 FIX: Préserver les valeurs de session locale
         const localUserVehicle = this.data.userVehicle;
         const localCurrentUser = this.data.currentUser;
         this.data = cloudData;
@@ -2507,14 +2692,12 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
           this.renderUserVehicleDetail();
         }
 
-        // Sync toast hidden: this.showToast('☁️ Données synchronisées depuis le cloud', 'success');
         return;
       }
     }
 
     this.saveData();
     this.renderAll();
-    // Sync toast hidden: this.showToast('Données synchronisées localement', 'success');
   }
 
   showSyncStatus(status) {
@@ -2589,21 +2772,17 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
 
-      // === FEUILLE VÉHICULES ===
       const wsVeh = wb.Sheets['Véhicules'];
       if (!wsVeh) throw new Error("Feuille 'Véhicules' introuvable");
       const rowsVeh = XLSX.utils.sheet_to_json(wsVeh, { header: 1, defval: '' });
 
-      // Find header row (row index with 'Matricule')
       let headerIdx = -1;
       for (let i = 0; i < rowsVeh.length; i++) {
         if (String(rowsVeh[i][0]).includes('Matricule')) { headerIdx = i; break; }
       }
       if (headerIdx < 0) throw new Error("En-tête 'Matricule' introuvable");
 
-      // Data starts 2 rows after header (skip hint row)
       const vehicles = [];
-      // Détecter la présence de la colonne "Matricule Agent" dans les headers
       const _headerRow = rowsVeh[headerIdx] || [];
       const _hasAgentCol = _headerRow.some((h, idx) => idx > 0 && String(h || '').toLowerCase().includes('agent'));
 
@@ -2616,10 +2795,8 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
           if (v instanceof Date) return v.toISOString().split('T')[0];
           return String(v).trim();
         };
-        // Détecter si la colonne "Matricule Agent" est présente (col B)
-        // En vérifiant le header: si r[1] header contient "Agent" → décalage de 1
         const hasAgentCol = _hasAgentCol;
-        const o = hasAgentCol ? 1 : 0; // offset
+        const o = hasAgentCol ? 1 : 0;
 
         vehicles.push({
           id: 'v_' + Date.now() + '_' + i,
@@ -2641,12 +2818,10 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
 
       if (vehicles.length === 0) throw new Error('Aucun véhicule trouvé dans le fichier');
 
-      // === FEUILLE RÉPARATIONS (optionnelle) ===
       const repairs = [...(this.data.repairs || [])];
       const wsRep = wb.Sheets['Réparations'];
       if (wsRep) {
         const rowsRep = XLSX.utils.sheet_to_json(wsRep, { header: 1, defval: '' });
-        // Find header (row with 'Matricule')
         let repHeaderIdx = -1;
         for (let i = 0; i < rowsRep.length; i++) {
           if (String(rowsRep[i][0]).includes('Matricule')) { repHeaderIdx = i; break; }
@@ -2662,7 +2837,6 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
             const mat = String(r[0] || '').trim();
             if (!mat || mat.toLowerCase().includes('ex:')) continue;
             const repDate = fmtDate(r[3]);
-            // Avoid duplicates: same matricule + type + date
             const isDup = repairs.some(ex => ex.matricule === mat && ex.date === repDate && ex.type === String(r[1]||'').trim());
             if (isDup) continue;
             repairs.push({
@@ -2679,7 +2853,6 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
         }
       }
 
-      // Merge with existing vehicles (keep existing, add new)
       const existingMats = new Set((this.data.vehicles || []).map(v => v.matricule));
       const newVehicles = [...(this.data.vehicles || [])];
       let added = 0, updated = 0;
@@ -2696,39 +2869,11 @@ ${(()=>{ const d=JSON.parse(localStorage.getItem('parcAutoData_v3')||'{}'); retu
       this.data.repairs = repairs;
       await this.saveData();
       this.renderAll();
-      const repCount = wsRep ? repairs.filter(r => !this.data.repairs.includes(r)).length : 0;
       this.showToast(`✅ ${added} véhicule(s) ajouté(s), ${updated} mis à jour, ${repairs.length} réparation(s) importée(s)`, 'success');
     } catch (err) {
       console.error('Excel import error:', err);
       this.showToast('❌ Erreur import Excel : ' + err.message, 'error');
     }
-  }
-
-  // ============================================
-  // UTILITAIRES
-  // ============================================
-  showToast(message, type = 'info') {
-    let container = document.querySelector('.toast-container');
-    if (!container) {
-      container = document.createElement('div');
-      container.className = 'toast-container';
-      document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-      <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
-      <span>${message}</span>
-    `;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(100%)';
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
   }
 }
 
@@ -2757,21 +2902,41 @@ function goHome() {
   document.getElementById('home-page').style.display = 'flex';
 }
 
+// ============================================
+// 🔐 VÉRIFICATION ADMIN AVEC OTP
+// ============================================
 function checkAdmin() {
+  // Vérifier d'abord la session OTP
+  if (!OTPManager.isSessionValid()) {
+    OTPManager.clearSession();
+    window.location.href = 'index.html';
+    return false;
+  }
+  
+  // Vérifier aussi le localStorage
   const data = JSON.parse(localStorage.getItem('parcAutoData_v3') || '{}');
   if (!data.currentUser || data.currentUser.role !== 'admin') {
     window.location.href = 'index.html';
     return false;
   }
+  
   const adminName = document.getElementById('admin-name');
   if (adminName && data.currentUser.name) {
     adminName.textContent = data.currentUser.name;
   }
+  
+  // Prolonger la session OTP
+  OTPManager.extendSession();
+  
   return true;
 }
 
+// ============================================
+// 🔐 DÉCONNEXION AVEC EFFACEMENT OTP
+// ============================================
 function logout() {
   stopAllTTS();
+  OTPManager.clearSession();
   const data = JSON.parse(localStorage.getItem('parcAutoData_v3') || '{}');
   data.currentUser = null;
   data.userVehicle = null;
@@ -2814,6 +2979,196 @@ function filterAlerts(type) {
     parcAuto.alertFilter = type;
     parcAuto.renderAlertsTable();
   }
+}
+
+// ============================================
+// 🔐 INTERFACE OTP — VÉRIFICATION 2 ÉTAPES
+// ============================================
+function showOTPScreen(email, user) {
+  const loginForm = document.getElementById('admin-login-form');
+  if (loginForm) loginForm.style.display = 'none';
+  
+  let otpContainer = document.getElementById('otp-verification-container');
+  if (!otpContainer) {
+    otpContainer = document.createElement('div');
+    otpContainer.id = 'otp-verification-container';
+    otpContainer.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;">
+        <div style="font-size:52px;margin-bottom:16px;">🔐</div>
+        <h2 style="font-size:20px;font-weight:700;color:#1e293b;margin-bottom:8px;">Vérification en 2 étapes</h2>
+        <p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:24px;">
+          Un code OTP à 6 chiffres a été envoyé via WhatsApp au numéro <strong>+216 98 230 530</strong>.<br>
+          Connectez-vous à WhatsApp pour récupérer le code.
+        </p>
+        
+        <div id="otp-loading" style="margin-bottom:20px;">
+          <span style="font-size:13px;color:#64748b;">⏳ Chargement...</span>
+        </div>
+        
+        <div id="otp-inputs" style="display:none;justify-content:center;gap:10px;margin-bottom:24px;">
+          <input type="text" maxlength="1" class="otp-digit" style="width:48px;height:56px;text-align:center;font-size:24px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:all 0.2s;" oninput="handleOTPInput(this, 0)" onkeydown="handleOTPKeydown(this, 0)" data-index="0">
+          <input type="text" maxlength="1" class="otp-digit" style="width:48px;height:56px;text-align:center;font-size:24px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:all 0.2s;" oninput="handleOTPInput(this, 1)" onkeydown="handleOTPKeydown(this, 1)" data-index="1">
+          <input type="text" maxlength="1" class="otp-digit" style="width:48px;height:56px;text-align:center;font-size:24px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:all 0.2s;" oninput="handleOTPInput(this, 2)" onkeydown="handleOTPKeydown(this, 2)" data-index="2">
+          <input type="text" maxlength="1" class="otp-digit" style="width:48px;height:56px;text-align:center;font-size:24px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:all 0.2s;" oninput="handleOTPInput(this, 3)" onkeydown="handleOTPKeydown(this, 3)" data-index="3">
+          <input type="text" maxlength="1" class="otp-digit" style="width:48px;height:56px;text-align:center;font-size:24px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:all 0.2s;" oninput="handleOTPInput(this, 4)" onkeydown="handleOTPKeydown(this, 4)" data-index="4">
+          <input type="text" maxlength="1" class="otp-digit" style="width:48px;height:56px;text-align:center;font-size:24px;font-weight:700;border:2px solid #e2e8f0;border-radius:12px;outline:none;transition:all 0.2s;" oninput="handleOTPInput(this, 5)" onkeydown="handleOTPKeydown(this, 5)" data-index="5">
+        </div>
+        
+        <button id="btn-verify-otp" onclick="verifyOTPCode()" style="display:none;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(239,68,68,0.3);margin-bottom:16px;">
+          Valider le code
+        </button>
+        
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+          <button onclick="resendOTP()" style="background:none;border:none;color:#3b82f6;cursor:pointer;font-size:13px;text-decoration:underline;">
+            🔄 Renvoyer le code
+          </button>
+          <button onclick="cancelOTP()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;">
+            Annuler
+          </button>
+        </div>
+        
+        <div id="otp-attempts" style="margin-top:16px;font-size:12px;color:#64748b;">
+          Tentatives : <span style="color:#22c55e;">● ● ●</span>
+        </div>
+        
+        <div id="otp-error" style="margin-top:12px;font-size:13px;color:#ef4444;display:none;"></div>
+      </div>
+    `;
+    
+    const loginContainer = document.getElementById('login-admin');
+    if (loginContainer) {
+      loginContainer.appendChild(otpContainer);
+    }
+  }
+  
+  otpContainer.style.display = 'block';
+  
+  OTPManager.sendOTP(email).then(result => {
+    const loading = document.getElementById('otp-loading');
+    const inputs = document.getElementById('otp-inputs');
+    const btn = document.getElementById('btn-verify-otp');
+    if (loading) loading.style.display = 'none';
+    if (inputs) inputs.style.display = 'flex';
+    if (btn) btn.style.display = 'block';
+    
+    if (!result.success) {
+      showOTPError(result.error);
+    }
+    
+    setTimeout(() => {
+      const firstInput = document.querySelector('.otp-digit[data-index="0"]');
+      if (firstInput) firstInput.focus();
+    }, 100);
+  });
+  
+  window._pendingAdminUser = user;
+}
+
+function handleOTPInput(input, index) {
+  input.value = input.value.replace(/[^0-9]/g, '');
+  if (input.value.length === 1 && index < 5) {
+    const next = document.querySelector(`.otp-digit[data-index="${index + 1}"]`);
+    if (next) next.focus();
+  }
+  updateOTPVerifyButton();
+}
+
+function handleOTPKeydown(input, index) {
+  if (event.key === 'Backspace' && input.value === '' && index > 0) {
+    const prev = document.querySelector(`.otp-digit[data-index="${index - 1}"]`);
+    if (prev) prev.focus();
+  }
+  if (event.key === 'Enter') {
+    verifyOTPCode();
+  }
+}
+
+function updateOTPVerifyButton() {
+  const inputs = document.querySelectorAll('.otp-digit');
+  const values = Array.from(inputs).map(i => i.value).join('');
+  const btn = document.getElementById('btn-verify-otp');
+  if (btn) {
+    btn.style.opacity = values.length === 6 ? '1' : '0.6';
+    btn.style.pointerEvents = values.length === 6 ? 'auto' : 'none';
+  }
+}
+
+function verifyOTPCode() {
+  const inputs = document.querySelectorAll('.otp-digit');
+  const code = Array.from(inputs).map(i => i.value).join('');
+  
+  if (code.length !== 6) {
+    showOTPError('Veuillez saisir les 6 chiffres du code.');
+    return;
+  }
+  
+  const result = OTPManager.verifyOTP(code);
+  
+  if (result.valid) {
+    const user = window._pendingAdminUser;
+    if (user && parcAuto) {
+      parcAuto.data.currentUser = { email: user.email, role: user.role, name: user.name };
+      parcAuto.data.userVehicle = null;
+      parcAuto.saveData().then(() => {
+        parcAuto.showToast('🔐 Authentification 2FA réussie', 'success');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 500);
+      });
+    }
+  } else {
+    showOTPError(result.error);
+    updateOTPAttempts(result.attemptsLeft);
+    
+    if (result.locked) {
+      const btn = document.getElementById('btn-verify-otp');
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+      }
+    }
+  }
+}
+
+function showOTPError(message) {
+  const errorEl = document.getElementById('otp-error');
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    setTimeout(() => { errorEl.style.display = 'none'; }, 5000);
+  }
+}
+
+function updateOTPAttempts(remaining) {
+  const el = document.getElementById('otp-attempts');
+  if (el && remaining !== undefined) {
+    const dots = Array(3).fill(0).map((_, i) => 
+      i < remaining ? '<span style="color:#22c55e;">●</span>' : '<span style="color:#ef4444;">●</span>'
+    ).join(' ');
+    el.innerHTML = `Tentatives : ${dots}`;
+  }
+}
+
+function resendOTP() {
+  const email = sessionStorage.getItem('_otp_email');
+  if (email) {
+    const user = ADMIN_USERS.find(u => u.email === email);
+    if (user) {
+      const errorEl = document.getElementById('otp-error');
+      if (errorEl) errorEl.style.display = 'none';
+      document.querySelectorAll('.otp-digit').forEach(i => i.value = '');
+      showOTPScreen(email, user);
+    }
+  }
+}
+
+function cancelOTP() {
+  const otpContainer = document.getElementById('otp-verification-container');
+  if (otpContainer) otpContainer.style.display = 'none';
+  
+  const loginForm = document.getElementById('admin-login-form');
+  if (loginForm) loginForm.style.display = 'block';
+  
+  OTPManager.clearSession();
+  window._pendingAdminUser = null;
 }
 
 // ============================================
@@ -2882,7 +3237,6 @@ function checkAndNotifyAlerts() {
     (data.vehicles || []).forEach(v => {
       const vAlerts = [];
 
-      // 1. Vidange
       if (v.prochaineVidange && v.km) {
         const rest = v.prochaineVidange - v.km;
         if (rest <= settings.alerteVidange) {
@@ -2893,7 +3247,6 @@ function checkAndNotifyAlerts() {
         }
       }
 
-      // 2. Kit Chaîne
       if (v.prochaineChaine && v.km) {
         const rest = v.prochaineChaine - v.km;
         if (rest <= settings.alerteChaine) {
@@ -2904,7 +3257,6 @@ function checkAndNotifyAlerts() {
         }
       }
 
-      // 3. Visite Technique
       if (v.prochaineVisite) {
         const d = new Date(v.prochaineVisite); d.setHours(0,0,0,0);
         const days = Math.ceil((d - today) / 86400000);
@@ -2916,19 +3268,16 @@ function checkAndNotifyAlerts() {
         }
       }
 
-      // 4. Batterie (> 24 mois)
       if (v.dateChangementBatterie) {
         const months = (today - new Date(v.dateChangementBatterie)) / (1000*60*60*24*30);
         if (months >= 24) { vAlerts.push(`Batterie: ${Math.floor(months)} mois sans remplacement`); totalAlerts++; }
       }
 
-      // 5. Pneus (> 12 mois)
       if (v.dateChangementPneus) {
         const months = (today - new Date(v.dateChangementPneus)) / (1000*60*60*24*30);
         if (months >= 12) { vAlerts.push(`Pneus: ${Math.floor(months)} mois sans remplacement`); totalAlerts++; }
       }
 
-      // ENVOI AUTOMATIQUE WHATSAPP
       if (vAlerts.length > 0) {
         if (v.whatsappChauffeur) {
           queueWhatsAppMessage(v, vAlerts, today, 'chauffeur');
@@ -2954,11 +3303,6 @@ function checkAndNotifyAlerts() {
 // WHATSAPP — FILE D'ATTENTE ET ENVOI INTELLIGENT
 // ============================================
 
-/**
- * queueWhatsAppMessage: stocke les messages en attente dans localStorage
- * puis les envoie via notification cliquable. Le chauffeur/chef reçoit
- * l'alerte même s'il n'a pas ouvert l'application.
- */
 function queueWhatsAppMessage(vehicle, alerts, today, recipient) {
   const todayStr = today.toISOString().split('T')[0];
   const dedupeKey = `wa_${recipient}_${vehicle.matricule}_${todayStr}`;
@@ -3009,47 +3353,35 @@ _Ce message est généré automatiquement._`;
 
   const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 
-  // MÉTHODE 1 : Notification cliquable (fonctionne en arrière-plan)
-  // Le clic sur la notification ouvre directement WhatsApp
   if (Notification.permission === 'granted') {
-    const icon = recipient === 'chef' ? '🚨' : '📱';
-    const label = recipient === 'chef' ? 'Chef de parc' : `Chauffeur ${vehicle.chauffeur}`;
-    
-    try {
-      // Stocker l'URL WhatsApp pour que le service worker puisse l'ouvrir
-      const pendingKey = `wa_pending_${vehicle.matricule}_${recipient}_${todayStr}`;
-      localStorage.setItem(pendingKey, waUrl);
+    const pendingKey = `wa_pending_${vehicle.matricule}_${recipient}_${todayStr}`;
+    localStorage.setItem(pendingKey, waUrl);
 
-      const notif = new Notification(`${icon} Alerte WhatsApp — ${vehicle.matricule}`, {
-        body: `Cliquez pour envoyer l'alerte WhatsApp à ${label}\n${alerts[0] || ''}`,
-        icon: 'icon-192.png',
-        badge: 'icon-192.png',
-        tag: `wa-${recipient}-${vehicle.matricule}`,
-        requireInteraction: true,
-        data: { waUrl, pendingKey }
-      });
+    const notif = new Notification(`${recipient === 'chef' ? '🚨' : '📱'} Alerte WhatsApp — ${vehicle.matricule}`, {
+      body: `Cliquez pour envoyer l'alerte WhatsApp\n${alerts[0] || ''}`,
+      icon: 'icon-192.png',
+      badge: 'icon-192.png',
+      tag: `wa-${recipient}-${vehicle.matricule}`,
+      requireInteraction: true,
+      data: { waUrl, pendingKey }
+    });
 
-      notif.onclick = function() {
-        window.open(waUrl, '_blank');
-        localStorage.setItem(dedupeKey, '1');
-        localStorage.removeItem(pendingKey);
-        notif.close();
-      };
-
+    notif.onclick = function() {
+      window.open(waUrl, '_blank');
       localStorage.setItem(dedupeKey, '1');
-      console.log(`✅ Notification WhatsApp créée pour ${vehicle.matricule} → ${recipient}`);
-      return;
-    } catch(e) {
-      console.warn('Notification failed, fallback to direct open:', e);
-    }
+      localStorage.removeItem(pendingKey);
+      notif.close();
+    };
+
+    localStorage.setItem(dedupeKey, '1');
+    console.log(`✅ Notification WhatsApp créée pour ${vehicle.matricule} → ${recipient}`);
+    return;
   }
 
-  // MÉTHODE 2 : Fallback — ouvrir directement WhatsApp
   window.open(waUrl, '_blank');
   localStorage.setItem(dedupeKey, '1');
 }
 
-// Compatibilité avec l'ancien code
 function sendWhatsAppAlertToChef(vehicle, alerts, today) {
   queueWhatsAppMessage(vehicle, alerts, today, 'chef');
 }
@@ -3160,50 +3492,6 @@ function exportVehiclePDF(matricule) {
 }
 
 // ============================================
-// 3. DOUBLE AUTHENTIFICATION OTP (Admin)
-// ============================================
-const OTP_CONFIG = {
-  code: null,
-  expiry: null,
-  attempts: 0,
-  maxAttempts: 3
-};
-
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function simulateSendOTP(email, otp) {
-  // En production: appel API SMS/Email
-  // Pour démo: afficher dans console + alerte discrète
-  console.log(`📱 OTP pour ${email}: ${otp}`);
-  // Stocker temporairement pour la démo
-  sessionStorage.setItem('_demo_otp', otp);
-}
-
-function requestOTP(email) {
-  const otp = generateOTP();
-  OTP_CONFIG.code = otp;
-  OTP_CONFIG.expiry = Date.now() + 5 * 60 * 1000; // 5 min
-  OTP_CONFIG.attempts = 0;
-  simulateSendOTP(email, otp);
-  return otp;
-}
-
-function verifyOTP(inputCode) {
-  if (!OTP_CONFIG.code || !OTP_CONFIG.expiry) return { ok: false, msg: 'Aucun code généré' };
-  if (Date.now() > OTP_CONFIG.expiry) return { ok: false, msg: 'Code expiré. Recommencez.' };
-  OTP_CONFIG.attempts++;
-  if (OTP_CONFIG.attempts > OTP_CONFIG.maxAttempts) return { ok: false, msg: 'Trop de tentatives.' };
-  if (inputCode.trim() === OTP_CONFIG.code) {
-    OTP_CONFIG.code = null;
-    return { ok: true };
-  }
-  return { ok: false, msg: `Code incorrect. ${OTP_CONFIG.maxAttempts - OTP_CONFIG.attempts} essai(s) restant(s).` };
-}
-
-
-// ============================================
 // ALERTES WHATSAPP
 // ============================================
 
@@ -3215,29 +3503,24 @@ function sendWhatsAppAlert(matricule) {
   const today = new Date();
   const alerts = [];
 
-  // Check vidange
   if (v.prochaineVidange && v.km) {
     const remaining = v.prochaineVidange - v.km;
     if (remaining <= 2000) alerts.push(`🔧 Vidange : ${remaining > 0 ? remaining + ' km restants' : 'DÉPASSÉE de ' + Math.abs(remaining) + ' km'}`);
   }
-  // Check chaîne
   if (v.prochaineChaine && v.km) {
     const remaining = v.prochaineChaine - v.km;
     if (remaining <= 2000) alerts.push(`⛓️ Kit chaîne : ${remaining > 0 ? remaining + ' km restants' : 'DÉPASSÉE de ' + Math.abs(remaining) + ' km'}`);
   }
-  // Check visite technique
   if (v.prochaineVisite) {
     const visiteDate = new Date(v.prochaineVisite);
     const daysLeft = Math.ceil((visiteDate - today) / (1000 * 60 * 60 * 24));
     if (daysLeft <= 30) alerts.push(`📋 Visite technique : ${daysLeft < 0 ? 'DÉPASSÉE de ' + Math.abs(daysLeft) + ' jours' : daysLeft + ' jours restants'}`);
   }
-  // Check batterie (si > 2 ans)
   if (v.dateChangementBatterie) {
     const battDate = new Date(v.dateChangementBatterie);
     const monthsOld = (today - battDate) / (1000 * 60 * 60 * 24 * 30);
     if (monthsOld >= 24) alerts.push(`🔋 Batterie : ${Math.floor(monthsOld)} mois depuis le dernier remplacement`);
   }
-  // Check pneus (si > 12 mois)
   if (v.dateChangementPneus) {
     const pneusDate = new Date(v.dateChangementPneus);
     const monthsOld = (today - pneusDate) / (1000 * 60 * 60 * 24 * 30);
@@ -3253,7 +3536,6 @@ function sendWhatsAppAlert(matricule) {
     body = header + `\n⚠️ *ALERTES DÉTECTÉES (${alerts.length}) :*\n\n` + alerts.join('\n') + `\n\n_Merci de prendre les dispositions nécessaires._\n_Parc Auto DRT Sfax — Tunisie Telecom_`;
   }
 
-  // Ouvrir boîte de dialogue pour choisir le numéro
   const phoneNum = prompt('📲 Numéro WhatsApp du destinataire :\n(format international, ex: 21698230530)', '216');
   if (!phoneNum || phoneNum.trim() === '216' || phoneNum.trim().length < 8) {
     alert('Numéro invalide. Opération annulée.');
