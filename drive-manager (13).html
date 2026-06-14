@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drive Manager — Parc Auto DRT Sfax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="drive-styles.css">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 40%, #fefce8 80%, #fdf4ff 100%);
+      padding: 0;
+    }
+
+    /* TOP NAV */
+    .drive-nav {
+      background: rgba(255,255,255,0.9);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      backdrop-filter: blur(16px);
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 16px;
+      height: 58px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .drive-nav-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #4285f4, #34a853);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .drive-nav h1 { font-size: 16px; font-weight: 700; color: #1e293b; flex: 1; }
+    .drive-nav-links { display: flex; gap: 8px; }
+    .drive-nav-link {
+      padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      text-decoration: none; color: #64748b;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.6);
+      transition: all 0.2s;
+    }
+    .drive-nav-link:hover { color: #1e293b; background: rgba(0,0,0,0.04); }
+    .drive-nav-link.back { color: #3b82f6; border-color: rgba(59,130,246,0.2); }
+
+    /* STATUS BAR */
+    .drive-status-bar {
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .drive-status-indicator {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12px; color: #64748b; flex: 1;
+    }
+    .drive-status-actions { display: flex; gap: 8px; }
+
+    /* MAIN LAYOUT */
+    .drive-main {
+      max-width: 1100px; margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* CONNECT SPLASH */
+    .drive-connect-splash {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(66,133,244,0.15);
+      border-radius: 20px;
+      padding: 48px 32px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+    }
+    .drive-connect-splash .splash-logo { font-size: 56px; margin-bottom: 16px; }
+    .drive-connect-splash h2 { font-size: 22px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+    .drive-connect-splash p { font-size: 14px; color: #64748b; margin-bottom: 28px; max-width: 420px; margin-left: auto; margin-right: auto; }
+    .drive-connect-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: white;
+      border: 1px solid rgba(0,0,0,0.15);
+      border-radius: 10px; padding: 12px 24px;
+      font-size: 15px; font-weight: 600; color: #1e293b;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .drive-connect-btn:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-1px); }
+    .google-g { font-size: 18px; }
+    .drive-features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px; margin-top: 32px;
+    }
+    .drive-feature-card {
+      background: rgba(0,0,0,0.02);
+      border: 1px solid rgba(0,0,0,0.05);
+      border-radius: 12px; padding: 16px;
+      text-align: left;
+    }
+    .drive-feature-card .feat-icon { font-size: 22px; margin-bottom: 8px; }
+    .drive-feature-card .feat-title { font-size: 12px; font-weight: 700; color: #1e293b; margin-bottom: 3px; }
+    .drive-feature-card .feat-desc { font-size: 11px; color: #64748b; line-height: 1.4; }
+
+    /* CONNECTED PANEL */
+    .drive-panel { display: none; }
+    .drive-panel.active { display: block; }
+
+    /* STATS */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 12px; padding: 14px 16px;
+      backdrop-filter: blur(10px);
+    }
+    .stat-card .s-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .s-value { font-size: 24px; font-weight: 700; color: #1e293b; margin-top: 2px; }
+    .stat-card .s-sub { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+    /* TABS */
+    .drive-tabs {
+      display: flex; gap: 4px;
+      background: rgba(0,0,0,0.04);
+      border-radius: 10px; padding: 4px;
+      margin-bottom: 20px;
+    }
+    .drive-tab {
+      flex: 1; padding: 8px 12px;
+      border-radius: 7px; font-size: 12px; font-weight: 600;
+      border: none; cursor: pointer;
+      background: transparent; color: #64748b;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .drive-tab.active {
+      background: white; color: #1e293b;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    /* FOLDER BROWSER */
+    .folder-browser {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px; overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .folder-browser-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      background: rgba(0,0,0,0.02);
+    }
+    .folder-selector {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .folder-chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      border: 1px solid rgba(0,0,0,0.08); cursor: pointer;
+      background: rgba(255,255,255,0.7); color: #64748b;
+      transition: all 0.15s;
+    }
+    .folder-chip.active {
+      background: linear-gradient(135deg, #4285f4, #34a853);
+      color: white; border-color: transparent;
+      box-shadow: 0 2px 8px rgba(66,133,244,0.3);
+    }
+    .folder-content { padding: 16px 18px; }
+
+    /* FILE GRID */
+    .files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .file-card {
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 12px; overflow: hidden;
+      background: white;
+      transition: all 0.2s; cursor: pointer;
+    }
+    .file-card:hover {
+      border-color: rgba(66,133,244,0.25);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      transform: translateY(-3px);
+    }
+    .file-preview {
+      width: 100%; height: 100px;
+      object-fit: cover; background: #f8fafc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+    .file-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .file-info { padding: 8px 10px; }
+    .file-name { font-size: 11px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-meta { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+    .file-actions { display: flex; gap: 4px; padding: 4px 10px 10px; }
+    .file-action-btn {
+      flex: 1; padding: 5px 4px;
+      border-radius: 6px; font-size: 11px; font-weight: 600;
+      border: 1px solid rgba(0,0,0,0.08); cursor: pointer;
+      background: rgba(0,0,0,0.02); color: #475569;
+      text-decoration: none; text-align: center;
+      transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+    }
+    .file-action-btn:hover { background: rgba(0,0,0,0.06); color: #1e293b; }
+    .file-del-btn:hover { background: rgba(239,68,68,0.08); color: #ef4444; border-color: rgba(239,68,68,0.2); }
+
+    /* UPLOAD ZONE */
+    .upload-zone-wrap {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px; padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .upload-zone-wrap h3 { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 12px; }
+    .upload-controls {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 14px;
+    }
+    .upload-controls select,
+    .upload-controls input {
+      padding: 9px 12px; border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.1); font-size: 12px;
+      background: rgba(255,255,255,0.7); color: #1e293b;
+      font-family: inherit;
+    }
+    .upload-controls select:focus,
+    .upload-controls input:focus {
+      outline: none; border-color: rgba(66,133,244,0.4);
+    }
+    .dropzone-main {
+      border: 2px dashed rgba(66,133,244,0.3);
+      border-radius: 12px; padding: 32px 20px;
+      text-align: center; cursor: pointer;
+      transition: all 0.2s; background: rgba(66,133,244,0.01);
+    }
+    .dropzone-main:hover,
+    .dropzone-main.dragover {
+      border-color: rgba(66,133,244,0.6);
+      background: rgba(66,133,244,0.04);
+    }
+    .dropzone-main .dz-icon { font-size: 40px; margin-bottom: 10px; }
+    .dropzone-main .dz-title { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .dropzone-main .dz-sub { font-size: 12px; color: #64748b; }
+    .dz-browse-label { color: #3b82f6; cursor: pointer; text-decoration: underline; }
+
+    /* SYNC LOG */
+    .sync-log {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 16px; overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .sync-log-header { padding: 14px 18px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13px; font-weight: 700; color: #1e293b; }
+    .sync-log-body { padding: 12px 18px; max-height: 300px; overflow-y: auto; }
+    .log-entry {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 0; border-bottom: 1px solid rgba(0,0,0,0.04);
+      font-size: 12px;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #94a3b8; min-width: 60px; }
+    .log-icon { font-size: 14px; }
+    .log-msg { color: #475569; flex: 1; }
+    .log-ok { color: #10b981; }
+    .log-err { color: #ef4444; }
+
+    /* PROGRESS LIST */
+    #upload-progress-list { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+    .up-item {
+      display: grid; grid-template-columns: 1fr 100px auto;
+      align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.02);
+      border-radius: 8px; padding: 8px 12px; font-size: 12px;
+    }
+    .up-name { color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .up-bar { height: 4px; background: rgba(0,0,0,0.08); border-radius: 2px; overflow: hidden; }
+    .up-fill { height: 100%; background: linear-gradient(90deg, #4285f4, #34a853); transition: width 0.2s; border-radius: 2px; }
+    .up-pct { font-size: 11px; color: #64748b; text-align: right; }
+    .up-item.done .up-fill { background: #10b981; }
+    .up-item.done .up-pct { color: #10b981; }
+    .up-item.error .up-fill { background: #ef4444; }
+    .up-item.error .up-pct { color: #ef4444; }
+
+    /* EMPTY STATE */
+    .files-empty {
+      grid-column: 1/-1; text-align: center;
+      padding: 32px; color: #94a3b8; font-size: 13px;
+    }
+    .files-empty .empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+    /* SETUP GUIDE */
+    .setup-guide {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 16px; padding: 20px;
+      margin-bottom: 24px;
+    }
+    .setup-guide summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #b45309; }
+    .setup-steps { margin-top: 12px; }
+    .setup-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .setup-step:last-child { border: none; }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: white; font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-text { font-size: 12px; color: #475569; line-height: 1.5; }
+    .step-text code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .step-text a { color: #3b82f6; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="drive-nav">
+  <div class="drive-nav-logo">☁️</div>
+  <h1>Drive Manager — Parc Auto DRT Sfax</h1>
+  <div class="drive-nav-links">
+    <a href="admin.html" class="drive-nav-link back">← Admin</a>
+    <a href="index.html" class="drive-nav-link">Accueil</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="drive-main">
+
+  <!-- GUIDE CONFIGURATION -->
+  <details class="setup-guide" id="setup-guide">
+    <summary>⚙️ Guide de configuration Google Drive API (cliquer pour développer)</summary>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-text">Aller sur <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → Créer un nouveau projet <code>Parc Auto DRT Sfax</code></div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-text">API et services → Activer <code>Google Drive API</code> et <code>Google Picker API</code></div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-text">Identifiants → Créer <code>Clé API</code> (restreindre au domaine) + <code>ID client OAuth 2.0</code> type "Application Web" → Ajouter votre domaine dans "Origines autorisées"</div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div class="step-text">Dans <code>drive-integration.js</code>, remplacer <code>VOTRE_CLIENT_ID</code> et <code>VOTRE_API_KEY</code> par vos vraies valeurs</div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">5</div>
+        <div class="step-text">Écran de consentement OAuth → Ajouter les utilisateurs autorisés (emails @tt.tn ou rendre l'app publique si nécessaire)</div>
+      </div>
+    </div>
+  </details>
+
+  <!-- STATUS BAR -->
+  <div class="drive-status-bar">
+    <div class="drive-status-indicator">
+      <div data-drive-dot class="drive-disconnected"></div>
+      <span data-drive-status>Non connecté à Google Drive</span>
+    </div>
+    <div id="last-sync-label" style="font-size:11px;color:#94a3b8;margin-right:8px;"></div>
+    <div class="drive-status-actions">
+      <button class="drive-bar-btn drive-btn-connect" id="btn-connect" onclick="connectDrive()">
+        <span>🔗</span> Connecter Google Drive
+      </button>
+      <button class="drive-bar-btn drive-btn-sync" id="btn-sync" onclick="syncNow()" style="display:none">
+        🔄 Sync
+      </button>
+      <button class="drive-bar-btn drive-btn-disconnect" id="btn-disconnect" onclick="disconnectDrive()" style="display:none">
+        Déconnecter
+      </button>
+    </div>
+  </div>
+
+  <!-- CONNECT SPLASH (visible avant connexion) -->
+  <div id="connect-splash" class="drive-connect-splash">
+    <div class="splash-logo">☁️</div>
+    <h2>Stockage Google Drive</h2>
+    <p>Connectez Google Drive pour stocker les photos, documents et rapports directement dans le cloud. Toutes les modifications sont synchronisées en temps réel pour tous les utilisateurs.</p>
+    <button class="drive-connect-btn" onclick="connectDrive()">
+      <span class="google-g">G</span> Continuer avec Google
+    </button>
+    <div class="drive-features">
+      <div class="drive-feature-card">
+        <div class="feat-icon">📸</div>
+        <div class="feat-title">Photos véhicules</div>
+        <div class="feat-desc">Uploader et visionner les photos de chaque véhicule</div>
+      </div>
+      <div class="drive-feature-card">
+        <div class="feat-icon">📄</div>
+        <div class="feat-title">Documents officiels</div>
+        <div class="feat-desc">Contrats, assurances, procès-verbaux</div>
+      </div>
+      <div class="drive-feature-card">
+        <div class="feat-icon">🔧</div>
+        <div class="feat-title">Factures réparations</div>
+        <div class="feat-desc">Historique complet des interventions</div>
+      </div>
+      <div class="drive-feature-card">
+        <div class="feat-icon">🔄</div>
+        <div class="feat-title">Sync automatique</div>
+        <div class="feat-desc">Mise à jour toutes les 60 secondes pour tous</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL CONNECTÉ -->
+  <div id="connected-panel" class="drive-panel">
+
+    <!-- STATS -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="s-label">Photos</div>
+        <div class="s-value" id="stat-photos">—</div>
+        <div class="s-sub">fichiers</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Documents</div>
+        <div class="s-value" id="stat-docs">—</div>
+        <div class="s-sub">fichiers</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Factures</div>
+        <div class="s-value" id="stat-rep">—</div>
+        <div class="s-sub">fichiers</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-label">Total</div>
+        <div class="s-value" id="stat-total">—</div>
+        <div class="s-sub">dans Drive</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="drive-tabs">
+      <button class="drive-tab active" onclick="switchTab('browse')">📂 Parcourir</button>
+      <button class="drive-tab" onclick="switchTab('upload')">⬆️ Uploader</button>
+      <button class="drive-tab" onclick="switchTab('log')">📋 Journal</button>
+    </div>
+
+    <!-- TAB: BROWSE -->
+    <div id="tab-browse" class="tab-content">
+      <div class="folder-browser">
+        <div class="folder-browser-header">
+          <div class="folder-selector" id="folder-selector">
+            <!-- généré par JS -->
+          </div>
+          <input type="text" id="search-files" placeholder="🔍 Filtrer par matricule..." style="margin-left:auto;padding:6px 12px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-size:12px;min-width:180px;">
+        </div>
+        <div class="folder-content">
+          <div class="files-grid" id="files-grid">
+            <div class="files-empty">
+              <div class="empty-icon">📂</div>
+              <div>Sélectionnez un dossier ci-dessus</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: UPLOAD -->
+    <div id="tab-upload" class="tab-content" style="display:none">
+      <div class="upload-zone-wrap">
+        <h3>⬆️ Uploader des fichiers</h3>
+        <div class="upload-controls">
+          <select id="upload-folder">
+            <!-- options générées par JS -->
+          </select>
+          <input type="text" id="upload-matricule" placeholder="Matricule (ex: 17-356835)">
+        </div>
+        <div class="dropzone-main" id="main-dropzone">
+          <div class="dz-icon">☁️</div>
+          <div class="dz-title">Glisser-déposer les fichiers ici</div>
+          <div class="dz-sub">ou <label class="dz-browse-label" for="main-file-input">cliquer pour parcourir</label></div>
+          <input type="file" id="main-file-input" multiple style="display:none">
+        </div>
+        <div id="upload-progress-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB: LOG -->
+    <div id="tab-log" class="tab-content" style="display:none">
+      <div class="sync-log">
+        <div class="sync-log-header">📋 Journal de synchronisation</div>
+        <div class="sync-log-body" id="sync-log-body">
+          <div class="log-entry">
+            <span class="log-time">—</span>
+            <span class="log-icon">ℹ️</span>
+            <span class="log-msg">En attente de connexion...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /connected-panel -->
+
+</div><!-- /drive-main -->
+
+<!-- Scripts -->
+<script src="drive-integration.js"></script>
+<script>
+// ============================================================
+// LOGIQUE PAGE DRIVE MANAGER
+// ============================================================
+
+const FOLDER_KEYS = Object.keys(DRIVE_CONFIG.FOLDERS);
+const FOLDER_LABELS = DRIVE_CONFIG.FOLDERS;
+let currentFolder = FOLDER_KEYS[0];
+let syncCount = 0;
+
+// ---- CONNEXION ----
+async function connectDrive() {
+  try {
+    document.querySelector('[data-drive-status]').textContent = 'Chargement Google APIs...';
+    await window.driveManager.loadGoogleAPIs();
+    window.driveManager.initTokenClient();
+    window.driveManager.signIn();
+  } catch(e) {
+    addLog('Erreur chargement APIs Google: ' + e.message, 'error');
+  }
+}
+
+function disconnectDrive() {
+  if (!confirm('Déconnecter Google Drive ?')) return;
+  window.driveManager.signOut();
+  document.getElementById('connect-splash').style.display = '';
+  document.getElementById('connected-panel').classList.remove('active');
+  document.getElementById('btn-connect').style.display = '';
+  document.getElementById('btn-sync').style.display = 'none';
+  document.getElementById('btn-disconnect').style.display = 'none';
+  addLog('Déconnecté de Google Drive', 'info');
+}
+
+function syncNow() {
+  window.driveManager.syncAll();
+}
+
+// ---- ÉVÉNEMENTS DRIVE ----
+window.addEventListener('driveStatusChange', (e) => {
+  const { status, message } = e.detail;
+  addLog(message, status === 'error' ? 'error' : status === 'synced' ? 'ok' : 'info');
+
+  if (status === 'connected' || status === 'synced') {
+    document.getElementById('connect-splash').style.display = 'none';
+    document.getElementById('connected-panel').classList.add('active');
+    document.getElementById('btn-connect').style.display = 'none';
+    document.getElementById('btn-sync').style.display = '';
+    document.getElementById('btn-disconnect').style.display = '';
+    // Fermer le guide
+    document.getElementById('setup-guide').open = false;
+  }
+
+  if (status === 'synced') {
+    syncCount++;
+    document.getElementById('last-sync-label').textContent =
+      'Dernière sync: ' + new Date().toLocaleTimeString('fr-FR');
+    updateStats();
+    renderFolderChips();
+    renderFiles();
+    populateFolderSelect();
+  }
+});
+
+// Enregistrer callback sync
+window.driveManager.onSync((cache) => {
+  updateStats();
+  renderFiles();
+});
+
+// ---- STATS ----
+function updateStats() {
+  const cache = window.driveManager.fileCache;
+  document.getElementById('stat-photos').textContent = (cache.PHOTOS || []).length;
+  document.getElementById('stat-docs').textContent = (cache.DOCUMENTS || []).length;
+  document.getElementById('stat-rep').textContent = (cache.REPARATIONS || []).length;
+  const total = Object.values(cache).flat().length;
+  document.getElementById('stat-total').textContent = total;
+}
+
+// ---- FOLDER CHIPS ----
+function renderFolderChips() {
+  const sel = document.getElementById('folder-selector');
+  sel.innerHTML = FOLDER_KEYS.map(key => `
+    <button class="folder-chip ${key === currentFolder ? 'active' : ''}"
+      onclick="selectFolder('${key}')">
+      ${getFolderIcon(key)} ${FOLDER_LABELS[key]}
+    </button>`).join('');
+}
+
+function selectFolder(key) {
+  currentFolder = key;
+  renderFolderChips();
+  renderFiles();
+}
+
+function getFolderIcon(key) {
+  const icons = { PHOTOS:'📸', DOCUMENTS:'📄', RAPPORTS:'📊', REPARATIONS:'🔧', VISITES:'🔍', ASSURANCES:'🛡️' };
+  return icons[key] || '📁';
+}
+
+// ---- FILES GRID ----
+function renderFiles(filter = '') {
+  const grid = document.getElementById('files-grid');
+  const files = (window.driveManager.fileCache[currentFolder] || [])
+    .filter(f => !filter || f.name.toLowerCase().includes(filter.toLowerCase()));
+
+  if (!files.length) {
+    grid.innerHTML = `<div class="files-empty">
+      <div class="empty-icon">${getFolderIcon(currentFolder)}</div>
+      <div>${filter ? 'Aucun fichier correspondant' : 'Dossier vide'}</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = files.map(f => {
+    const isImage = f.mimeType && f.mimeType.startsWith('image/');
+    const isPDF = f.mimeType === 'application/pdf';
+    const icon = isImage ? null : isPDF ? '📄' : '📎';
+    const preview = isImage
+      ? `<div class="file-preview"><img src="${window.driveManager.getDisplayUrl(f.id)}" alt="" onerror="this.parentElement.innerHTML='📷'"></div>`
+      : `<div class="file-preview">${icon}</div>`;
+    const shortName = f.name.replace(/_\d{4}-\d{2}-\d{2}T[^.]+/, '').replace(/_/g, ' ');
+    const size = window.driveManager.formatSize(parseInt(f.size));
+    const date = new Date(f.createdTime).toLocaleDateString('fr-FR');
+    return `<div class="file-card">
+      ${preview}
+      <div class="file-info">
+        <div class="file-name" title="${f.name}">${shortName}</div>
+        <div class="file-meta">${size} · ${date}</div>
+      </div>
+      <div class="file-actions">
+        <a href="${f.webViewLink}" target="_blank" class="file-action-btn">👁</a>
+        <a href="${window.driveManager.getDownloadUrl(f.id)}" class="file-action-btn">⬇</a>
+        <button class="file-action-btn file-del-btn" onclick="deleteFile('${f.id}', this)">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteFile(id, btn) {
+  if (!confirm('Supprimer ce fichier de Drive ?')) return;
+  btn.textContent = '…';
+  try {
+    await window.driveManager.deleteFile(id);
+    btn.closest('.file-card').remove();
+    updateStats();
+    addLog('Fichier supprimé', 'ok');
+  } catch(e) {
+    btn.textContent = '🗑';
+    addLog('Erreur suppression: ' + e.message, 'error');
+  }
+}
+
+// ---- UPLOAD ----
+function populateFolderSelect() {
+  const sel = document.getElementById('upload-folder');
+  sel.innerHTML = FOLDER_KEYS.map(k => `<option value="${k}">${getFolderIcon(k)} ${FOLDER_LABELS[k]}</option>`).join('');
+}
+
+const mainDrop = document.getElementById('main-dropzone');
+const mainInput = document.getElementById('main-file-input');
+
+mainDrop.addEventListener('dragover', e => { e.preventDefault(); mainDrop.classList.add('dragover'); });
+mainDrop.addEventListener('dragleave', () => mainDrop.classList.remove('dragover'));
+mainDrop.addEventListener('drop', e => { e.preventDefault(); mainDrop.classList.remove('dragover'); handleUpload(Array.from(e.dataTransfer.files)); });
+mainInput.addEventListener('change', () => handleUpload(Array.from(mainInput.files)));
+
+async function handleUpload(files) {
+  if (!window.driveManager.isSignedIn) {
+    alert('Connectez Drive d\'abord');
+    return;
+  }
+  const folderKey = document.getElementById('upload-folder').value;
+  const matricule = document.getElementById('upload-matricule').value.trim();
+  const list = document.getElementById('upload-progress-list');
+
+  for (const file of files) {
+    const itemId = 'up-' + Date.now() + Math.random().toString(36).slice(2);
+    list.insertAdjacentHTML('beforeend', `
+      <div class="up-item" id="${itemId}">
+        <div class="up-name">${file.name}</div>
+        <div class="up-bar"><div class="up-fill" style="width:0%"></div></div>
+        <div class="up-pct">0%</div>
+      </div>`);
+
+    try {
+      await window.driveManager.uploadFile(file, folderKey, matricule, (pct) => {
+        const el = document.getElementById(itemId);
+        if (el) { el.querySelector('.up-fill').style.width = pct + '%'; el.querySelector('.up-pct').textContent = pct + '%'; }
+      });
+      const el = document.getElementById(itemId);
+      if (el) { el.classList.add('done'); el.querySelector('.up-fill').style.width = '100%'; el.querySelector('.up-pct').textContent = '✓'; }
+      addLog(`Upload terminé: ${file.name} → ${FOLDER_LABELS[folderKey]}`, 'ok');
+      updateStats();
+    } catch(e) {
+      const el = document.getElementById(itemId);
+      if (el) { el.classList.add('error'); el.querySelector('.up-pct').textContent = '✗'; }
+      addLog(`Erreur upload ${file.name}: ${e.message}`, 'error');
+    }
+  }
+}
+
+// ---- TABS ----
+function switchTab(name) {
+  document.querySelectorAll('.drive-tab').forEach((t, i) => {
+    const names = ['browse', 'upload', 'log'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  ['browse', 'upload', 'log'].forEach(n => {
+    const el = document.getElementById('tab-' + n);
+    if (el) el.style.display = n === name ? 'block' : 'none';
+  });
+  if (name === 'upload') populateFolderSelect();
+  if (name === 'browse') { renderFolderChips(); renderFiles(); }
+}
+
+// ---- LOG ----
+function addLog(msg, type = 'info') {
+  const body = document.getElementById('sync-log-body');
+  const time = new Date().toLocaleTimeString('fr-FR');
+  const icons = { ok: '✅', error: '❌', info: 'ℹ️', syncing: '🔄', synced: '☁️' };
+  const icon = icons[type] || 'ℹ️';
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.innerHTML = `<span class="log-time">${time}</span><span class="log-icon">${icon}</span><span class="log-msg">${msg}</span>`;
+  body.insertBefore(entry, body.firstChild);
+  // Max 50 entrées
+  while (body.children.length > 50) body.lastChild.remove();
+}
+
+// ---- SEARCH ----
+document.getElementById('search-files').addEventListener('input', (e) => {
+  renderFiles(e.target.value);
+});
+
+// ---- INIT ----
+// Charger cache local au démarrage
+const lastSync = window.driveManager.loadCacheFromStorage();
+if (lastSync) {
+  document.getElementById('last-sync-label').textContent = 'Cache: ' + new Date(lastSync).toLocaleString('fr-FR');
+  updateStats();
+  renderFolderChips();
+  addLog('Cache local chargé (' + new Date(lastSync).toLocaleString('fr-FR') + ')', 'info');
+}
+
+populateFolderSelect();
+renderFolderChips();
+</script>
+</body>
+</html>
