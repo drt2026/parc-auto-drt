@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanner Plaque — Parc Auto DRT Sfax</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Segoe UI',system-ui,sans-serif;
+      background:linear-gradient(135deg,#e0e7ff,#fce7f3);
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      padding:20px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background:#fff;
+      border-radius:24px;
+      padding:36px 32px 28px;
+      width:100%; max-width:420px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.12);
+    }
+    .back { font-size:13px; color:#64748b; display:flex; align-items:center; gap:6px; margin-bottom:20px; cursor:pointer; }
+    .logo-wrap { text-align:center; margin-bottom:24px; }
+    .logo-wrap .icon { font-size:48px; margin-bottom:10px; }
+    .logo-wrap h2 { font-size:20px; font-weight:800; color:#1e293b; }
+    .logo-wrap p  { font-size:13px; color:#64748b; margin-top:4px; }
+
+    .field-label { font-size:14px; font-weight:700; color:#1e293b; margin-bottom:8px; }
+
+    .input-row { display:flex; gap:8px; margin-bottom:6px; }
+    .mat-input {
+      flex:1; height:52px;
+      border:2px solid #e2e8f0; border-radius:14px;
+      padding:0 16px; font-size:16px; font-weight:700;
+      letter-spacing:2px; color:#1e293b; outline:none;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .mat-input:focus  { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+    .mat-input.ok     { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.15); }
+
+    .icon-btn {
+      width:52px; height:52px;
+      border:2px solid #e2e8f0; border-radius:14px;
+      background:#f8fafc; font-size:22px;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all .2s; flex-shrink:0;
+    }
+    .icon-btn.cam { background:#eff6ff; border-color:#3b82f6; }
+    .icon-btn.mic { background:#f0fdf4; border-color:#10b981; }
+    .icon-btn:active { transform:scale(.92); }
+
+    .hint { font-size:11.5px; color:#94a3b8; margin-bottom:18px; line-height:1.5; }
+
+    .badge {
+      display:none; align-items:center; gap:8px;
+      background:#f0fdf4; border:1.5px solid #10b981;
+      border-radius:10px; padding:10px 14px; margin-bottom:16px;
+      font-size:13px; color:#065f46; font-weight:700;
+    }
+    .badge.show { display:flex; }
+
+    .submit-btn {
+      width:100%; height:52px;
+      background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+      color:#fff; border:none; border-radius:14px;
+      font-size:16px; font-weight:700; cursor:pointer;
+      transition:all .2s;
+    }
+    .submit-btn:hover { opacity:.9; transform:translateY(-1px); }
+
+    .footer { text-align:center; font-size:12px; color:#cbd5e1; margin-top:16px; }
+    .footer strong { color:#1e3a5f; }
+
+    /* ── SCANNER OVERLAY ── */
+    #overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,0.92); z-index:9999;
+      flex-direction:column; align-items:center; justify-content:center;
+      padding:16px;
+    }
+    #overlay.open { display:flex; }
+
+    .scan-box {
+      background:#0f172a; border-radius:20px;
+      overflow:hidden; width:min(96vw,440px);
+      box-shadow:0 30px 80px rgba(0,0,0,.6);
+    }
+
+    /* header */
+    .scan-hdr {
+      padding:14px 18px;
+      background:#1e293b;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .scan-hdr h3 { color:#fff; font-size:15px; font-weight:700; }
+    .btn-close {
+      width:32px; height:32px; border-radius:8px;
+      border:none; background:rgba(255,255,255,.1);
+      color:#fff; font-size:18px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+    }
+
+    /* video */
+    .vf-wrap {
+      position:relative;
+      width:100%; background:#000;
+    }
+    #vid {
+      width:100%; display:block;
+      max-height:52vw;
+      object-fit:cover;
+    }
+    #cnv { display:none; }
+
+    /* cadre plaque */
+    .plate-frame {
+      position:absolute;
+      top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      width:78%; height:28%;
+      pointer-events:none;
+    }
+    .plate-frame::before,.plate-frame::after,
+    .plate-frame > span::before,.plate-frame > span::after {
+      content:''; position:absolute;
+      width:22px; height:22px;
+      border-color:#facc15; border-style:solid;
+    }
+    .plate-frame::before    { top:0; left:0;  border-width:3px 0 0 3px; border-radius:3px 0 0 0; }
+    .plate-frame::after     { top:0; right:0; border-width:3px 3px 0 0; border-radius:0 3px 0 0; }
+    .plate-frame > span::before { bottom:0; left:0;  border-width:0 0 3px 3px; border-radius:0 0 0 3px; }
+    .plate-frame > span::after  { bottom:0; right:0; border-width:0 3px 3px 0; border-radius:0 0 3px 0; }
+
+    /* ligne scan animée */
+    .scan-beam {
+      position:absolute;
+      left:12%; right:12%; height:2px;
+      background:linear-gradient(90deg,transparent,#facc15,transparent);
+      animation:beam 1.6s ease-in-out infinite;
+    }
+    @keyframes beam {
+      0%   { top:18%; opacity:0; }
+      10%  { opacity:1; }
+      90%  { opacity:1; }
+      100% { top:80%; opacity:0; }
+    }
+
+    /* label overlay */
+    .vf-label {
+      position:absolute;
+      bottom:8px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,.55); color:#facc15;
+      font-size:11px; font-weight:700; letter-spacing:.5px;
+      padding:4px 12px; border-radius:20px; white-space:nowrap;
+    }
+
+    /* status */
+    .scan-status {
+      padding:10px 16px; min-height:42px;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      font-size:13px; font-weight:500; text-align:center;
+    }
+    .s-idle    { color:#94a3b8; }
+    .s-busy    { color:#f59e0b; }
+    .s-ok      { color:#10b981; }
+    .s-err     { color:#ef4444; }
+
+    /* aperçu OCR */
+    #ocr-preview {
+      display:none;
+      background:#1e293b;
+      padding:10px 16px;
+      border-top:1px solid #334155;
+    }
+    #ocr-preview p { font-size:11px; color:#64748b; margin-bottom:4px; }
+    #ocr-raw { font-size:13px; color:#e2e8f0; font-family:monospace; word-break:break-all; }
+
+    /* bouton capturer */
+    .capture-wrap {
+      display:flex; flex-direction:column;
+      align-items:center; gap:10px;
+      padding:16px 16px 20px;
+      background:#1e293b;
+    }
+    #btn-cap {
+      width:68px; height:68px;
+      border-radius:50%;
+      border:4px solid #facc15;
+      background:transparent;
+      cursor:pointer; position:relative;
+      transition:all .2s;
+    }
+    #btn-cap::after {
+      content:''; position:absolute; inset:7px;
+      border-radius:50%; background:#facc15;
+      transition:background .2s;
+    }
+    #btn-cap:hover  { border-color:#fde68a; }
+    #btn-cap:active::after { background:#ca8a04; }
+    #btn-cap:disabled { opacity:.4; cursor:not-allowed; }
+    .cap-hint { color:#64748b; font-size:12px; }
+
+    /* spinner */
+    .spinner {
+      width:18px; height:18px;
+      border:2px solid rgba(245,158,11,.3);
+      border-top-color:#f59e0b;
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+      display:inline-block;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ CARD LOGIN ══════════════ -->
+<div class="card">
+  <div class="back">← Retour</div>
+
+  <div class="logo-wrap">
+    <div class="icon">🚗</div>
+    <h2>Consulter mon véhicule</h2>
+    <p>Scannez la plaque ou entrez le matricule</p>
+  </div>
+
+  <div class="field-label">🚗 Matricule Véhicule</div>
+
+  <div class="input-row">
+    <input id="mat-in" class="mat-input" type="text"
+      placeholder="EX: 17-XXXXXX" maxlength="12"
+      oninput="fmtMat(this)">
+    <button class="icon-btn cam" onclick="openScan()" title="Scanner la plaque">📷</button>
+    <button class="icon-btn mic" onclick="startVoice()" title="Dicter le matricule">🎙️</button>
+  </div>
+
+  <p class="hint">
+    Appuyez sur 📷, cadrez la plaque du véhicule, puis sur le bouton jaune.
+  </p>
+
+  <div class="badge" id="badge">✅ <span id="badge-txt"></span></div>
+
+  <button class="submit-btn" onclick="acceder()">🔍 Accéder à mon véhicule</button>
+
+  <p class="footer">Parc Auto DRT Sfax — <strong>Hamdi Ben Aouicha</strong></p>
+</div>
+
+
+<!-- ══════════════ OVERLAY SCANNER ══════════════ -->
+<div id="overlay">
+  <div class="scan-box">
+
+    <div class="scan-hdr">
+      <h3>📷 Scanner la plaque</h3>
+      <button class="btn-close" onclick="closeScan()">✕</button>
+    </div>
+
+    <div class="vf-wrap">
+      <video id="vid" autoplay playsinline muted></video>
+      <canvas id="cnv"></canvas>
+      <div class="plate-frame"><span></span></div>
+      <div class="scan-beam"></div>
+      <div class="vf-label">CADREZ LA PLAQUE DANS LE RECTANGLE</div>
+    </div>
+
+    <div class="scan-status s-idle" id="scan-st">
+      Cadrez la plaque puis appuyez sur le bouton
+    </div>
+
+    <div id="ocr-preview">
+      <p>Texte brut OCR :</p>
+      <div id="ocr-raw"></div>
+    </div>
+
+    <div class="capture-wrap">
+      <button id="btn-cap" onclick="doOCR()"></button>
+      <span class="cap-hint">Appuyez pour capturer et lire</span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- Tesseract.js -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* ── GLOBALS ── */
+let stream = null;
+let busy   = false;
+
+const vid    = document.getElementById('vid');
+const cnv    = document.getElementById('cnv');
+const ctx    = cnv.getContext('2d');
+const stEl   = document.getElementById('scan-st');
+const btnCap = document.getElementById('btn-cap');
+
+/* ── FORMAT SAISIE MANUELLE ── */
+function fmtMat(el) {
+  let v = el.value.toUpperCase().replace(/[^0-9]/g,'');
+  if (v.length > 2) v = v.slice(0,2) + '-' + v.slice(2);
+  el.value = v.slice(0,9);
+}
+
+/* ── OUVRIR ── */
+async function openScan() {
+  document.getElementById('overlay').classList.add('open');
+  setStatus('idle','Accès à la caméra…');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }
+    });
+    vid.srcObject = stream;
+    await vid.play();
+    setStatus('idle','Cadrez la plaque puis appuyez sur le bouton');
+  } catch(e) {
+    setStatus('err','❌ Caméra non disponible — vérifiez les permissions');
+  }
+}
+
+/* ── FERMER ── */
+function closeScan() {
+  if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('ocr-preview').style.display = 'none';
+  busy = false;
+  btnCap.disabled = false;
+}
+
+/* ── OCR SUR CAPTURE ── */
+async function doOCR() {
+  if (busy || !stream) return;
+  busy = true;
+  btnCap.disabled = true;
+  setStatus('busy','<span class="spinner"></span> Analyse de la plaque…');
+
+  /* 1. Capturer le frame vidéo */
+  cnv.width  = vid.videoWidth  || 1280;
+  cnv.height = vid.videoHeight || 720;
+  ctx.drawImage(vid, 0, 0);
+
+  /* 2. Rogner la zone centrale (rectangle cadre plaque) */
+  const cw = cnv.width, ch = cnv.height;
+  const rx = Math.round(cw * 0.11);
+  const ry = Math.round(ch * 0.36);
+  const rw = Math.round(cw * 0.78);
+  const rh = Math.round(ch * 0.28);
+
+  const tmp = document.createElement('canvas');
+  tmp.width  = rw * 2;   // upscale ×2 pour meilleur OCR
+  tmp.height = rh * 2;
+  const tc = tmp.getContext('2d');
+
+  /* 3. Prétraitement image : agrandissement + contraste fort */
+  tc.imageSmoothingEnabled = true;
+  tc.imageSmoothingQuality = 'high';
+  tc.filter = 'grayscale(1) contrast(2.2) brightness(1.15) sharpen()';
+  tc.drawImage(cnv, rx, ry, rw, rh, 0, 0, tmp.width, tmp.height);
+
+  /* 4. Tesseract — chiffres + tiret seulement */
+  try {
+    const { data } = await Tesseract.recognize(tmp, 'eng', {
+      tessedit_char_whitelist: '0123456789-',
+      tessedit_pageseg_mode: '7',   // une seule ligne de texte
+    });
+
+    const raw = data.text.trim();
+    document.getElementById('ocr-raw').textContent = raw || '(vide)';
+    document.getElementById('ocr-preview').style.display = 'block';
+
+    const mat = parseMatricule(raw);
+
+    if (mat) {
+      apply(mat);
+    } else {
+      setStatus('err','❌ Non reconnu ("' + raw + '") — réessayez');
+      busy = false;
+      btnCap.disabled = false;
+    }
+  } catch(e) {
+    setStatus('err','❌ Erreur OCR — réessayez');
+    busy = false;
+    btnCap.disabled = false;
+  }
+}
+
+/* ── PARSER LE MATRICULE tunisien ── */
+/* Formats: 17-357146 / 17357146 / 17 357146 */
+function parseMatricule(raw) {
+  if (!raw) return null;
+  const clean = raw.replace(/[\s\-\.]/g,'');   // retire espaces/tirets/points
+  /* doit commencer par 10-19 suivi de 5-6 chiffres */
+  const m = clean.match(/^(1[0-9])(\d{5,6})$/);
+  if (m) return m[1] + '-' + m[2];
+  /* essai avec tiret conservé */
+  const m2 = raw.replace(/\s/g,'').match(/^(1[0-9])-(\d{5,6})$/);
+  if (m2) return m2[1] + '-' + m2[2];
+  return null;
+}
+
+/* ── APPLIQUER ── */
+function apply(mat) {
+  const inp = document.getElementById('mat-in');
+  inp.value = mat;
+  inp.classList.add('ok');
+
+  document.getElementById('badge-txt').textContent = 'Plaque lue : ' + mat;
+  document.getElementById('badge').classList.add('show');
+
+  if (navigator.vibrate) navigator.vibrate([80,40,120]);
+
+  closeScan();
+}
+
+/* ── STATUS ── */
+function setStatus(type, html) {
+  stEl.className = 'scan-status s-' + type;
+  stEl.innerHTML = html;
+}
+
+/* ── VOIX ── */
+function startVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Reconnaissance vocale non supportée.'); return; }
+  const r = new SR(); r.lang = 'fr-FR';
+  r.onresult = e => {
+    let t = e.results[0][0].transcript.toLowerCase()
+      .replace(/dix.?sept/g,'17').replace(/zéro|zero/g,'0')
+      .replace(/\bun\b/g,'1').replace(/deux/g,'2').replace(/trois/g,'3')
+      .replace(/quatre/g,'4').replace(/cinq/g,'5').replace(/six/g,'6')
+      .replace(/sept/g,'7').replace(/huit/g,'8').replace(/neuf/g,'9')
+      .replace(/[^0-9]/g,'');
+    const mat = parseMatricule(t);
+    if (mat) {
+      document.getElementById('mat-in').value = mat;
+      document.getElementById('mat-in').classList.add('ok');
+      document.getElementById('badge-txt').textContent = 'Dictée : ' + mat;
+      document.getElementById('badge').classList.add('show');
+    }
+  };
+  r.start();
+}
+
+/* ── ACCÉDER ── */
+function acceder() {
+  const mat = document.getElementById('mat-in').value.trim();
+  if (!mat || mat.length < 8) { alert('Entrez ou scannez un matricule valide (ex: 17-357146)'); return; }
+  // → Dans ton index.html réel, remplace par : loadVehicleData(mat)
+  alert('✅ Accès au véhicule : ' + mat);
+}
+
+/* fermer en cliquant le fond */
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target.id === 'overlay') closeScan();
+});
+</script>
+</body>
+</html>
