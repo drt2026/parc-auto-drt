@@ -1765,10 +1765,10 @@ class ParcAutoApp {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('admin-email').value.trim();
-      const password = document.getElementById('admin-password').value;
+      const email = document.getElementById('admin-email').value.trim().toLowerCase();
+const password = document.getElementById('admin-password').value.trim();
 
-      const user = ADMIN_USERS.find(u => u.email === email && u.password === password);
+const user = ADMIN_USERS.find(u => u.email === email && u.password === password);
 
       if (user) {
         // ✅ Mot de passe correct → étape OTP par email
