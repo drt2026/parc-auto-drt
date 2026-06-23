@@ -1378,7 +1378,7 @@ const DEFAULT_DATA = {
 // ============================================
 // ============================================
 const ADMIN_USERS = [
-  { email: 'admin@drt.tn', password: 'DRT@Sfax2026', role: 'admin', name: 'Administrateur', whatsapp: '21698230530' }
+{ email: 'admin@drt.tn', password: 'drt2024', role: 'admin', name: 'Administrateur', whatsapp: '21698230530' }
 ];
 
 // ============================================
