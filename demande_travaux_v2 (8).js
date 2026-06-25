@@ -1,0 +1,1653 @@
+/* ============================================================
+   BLOC ADDITIF — MODULE DEMANDE DE TRAVAUX v2
+   Fichier : demande_travaux_v2.js
+   Stockage : même Gist que l'app (this.data.demandesTravaux)
+   Côté utilisateur : formulaire protégé par mot de passe
+   Côté admin     : onglet dédié avec validation / rejet / export
+   À inclure dans admin.html ET index.html après app.js :
+   <script src="demande_travaux_v2.js"></script>
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  // ── Table des utilisateurs (mot de passe → nom complet) ──
+  const TRAVAUX_USERS = {
+    'KM-2026':  'Kais Mejdoub',
+    'KMS-2026': 'Karim Mestiri',
+    'ZO-2026':  'Zied Ouledabdallah',
+    'HMZ-2026': 'Hichem Mzid',
+    'MA-2026':  'Mourad Ammar',
+    'ZJ-2026':  'Zaher Jemni',
+    'BC-2026':  'Bassem Chaari',
+    'ABJ-2026': 'Anis Ben Jemaa',
+    'AJ-2026':  'Aref Jarraya',
+    'SL-2026':  'Sabeur Louhichi',
+    'MK-2026':  'Makram Makhlouf',
+    'AWS-2026': 'Abdelwaheb Saadaoui',
+    'WM-2026':  'Walid Masmoudi',
+    'HA-2026':  'Hichem Abdelmoula',
+    'WB-2026':  'Wissem Bouguecha',
+    'ST-2026':  'Salma Trigui',
+    'FK-2026':  'Fakher Krichen',
+    'JG-2026':  'Jesser Gharbi',
+    'FBS-2026': 'Fethi Ben Salem',
+    'SC-2026':  'Sami Chaari'
+  };
+  const SESSION_KEY   = 'tr_sess_v2';
+  const SESSION_TTL   = 8 * 3600 * 1000;
+
+  // ── Table des validateurs (mot de passe → nom complet) ───
+  // BLOC ADDITIF — Compte Validateur
+  const VALIDATEUR_USERS = {
+    'HF-VALID-2026': 'Hanen Feki',
+    'ZO-VALID-2026': 'Zied Ouledabdallah'
+  };
+  const VALID_SESS_KEY = 'tr_valid_sess_v2';
+  const VALID_SESS_TTL = 4 * 3600 * 1000; // 4h
+
+  function getValidSess()  { try { var s = JSON.parse(sessionStorage.getItem(VALID_SESS_KEY)||'null'); return s && Date.now() < s.e ? s : null; } catch(e){ return null; } }
+  function setValidSess(nom) { sessionStorage.setItem(VALID_SESS_KEY, JSON.stringify({ e: Date.now() + VALID_SESS_TTL, nom: nom })); }
+  function delValidSess()  { sessionStorage.removeItem(VALID_SESS_KEY); }
+  // FIN BLOC ADDITIF — Compte Validateur
+
+  // ── Utilitaires session ───────────────────────────────────
+  function getSess()  { try { var s = JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null'); return s && Date.now() < s.e ? s : null; } catch(e){ return null; } }
+  function setSess(nom)  { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ e: Date.now() + SESSION_TTL, nom: nom })); }
+  function delSess()  { sessionStorage.removeItem(SESSION_KEY); }
+
+  // ── Accès données via parcAuto ────────────────────────────
+  function getData() {
+    var pa = window.parcAuto;
+    if (!pa || !pa.data) return null;
+    if (!pa.data.demandesTravaux) pa.data.demandesTravaux = [];
+    return pa.data;
+  }
+
+  function saveData() {
+    var pa = window.parcAuto;
+    if (pa && typeof pa.saveData === 'function') pa.saveData();
+  }
+
+  // Numéro séquentiel
+  function nextNumero() {
+    var data = getData();
+    if (!data) return 'DT-' + Date.now().toString().slice(-6);
+    var year  = new Date().getFullYear();
+    var demandes = (data.demandesTravaux || []);
+    var max = 0;
+    demandes.forEach(function(d) {
+      var m = d.numero && d.numero.match(/DT-\d{4}-(\d+)/);
+      if (m) { var n = parseInt(m[1], 10); if (n > max) max = n; }
+    });
+    return 'DT-' + year + '-' + String(max + 1).padStart(3, '0');
+  }
+
+  // ── CSS global ───────────────────────────────────────────
+  var css = document.createElement('style');
+  css.textContent = `
+    /* ── overlay / modal ── */
+    #tr2-overlay { display:none; position:fixed; inset:0; z-index:9100;
+      background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
+      align-items:center; justify-content:center; }
+    #tr2-overlay.open { display:flex; }
+    #tr2-modal { background:#fff; border-radius:20px; width:min(560px,95vw);
+      max-height:93vh; overflow-y:auto;
+      box-shadow:0 24px 64px rgba(0,0,0,0.22);
+      animation:tr2Up .28s cubic-bezier(.22,1,.36,1); }
+    @keyframes tr2Up { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+    .tr2-hd { background:linear-gradient(135deg,#1A1A2E,#16213E);
+      border-radius:20px 20px 0 0; padding:22px 26px;
+      display:flex; align-items:center; justify-content:space-between; }
+    .tr2-hd h2 { color:#fff; margin:0; font-size:17px; font-weight:700; }
+    .tr2-hd p  { color:#94a3b8; margin:2px 0 0; font-size:12px; }
+    .tr2-x { background:rgba(255,255,255,.13); border:none; color:#fff;
+      width:32px; height:32px; border-radius:50%; cursor:pointer;
+      font-size:17px; display:flex; align-items:center; justify-content:center; }
+    .tr2-x:hover { background:rgba(255,255,255,.22); }
+    .tr2-bd { padding:22px 26px; }
+    /* ── champs ── */
+    .tr2-f { margin-bottom:14px; }
+    .tr2-f label { display:block; font-size:11px; font-weight:700; color:#374151;
+      text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+    .tr2-f label em { color:#E67E22; font-style:normal; }
+    .tr2-f input,.tr2-f textarea,.tr2-f select {
+      width:100%; box-sizing:border-box; padding:10px 13px;
+      border:1.5px solid #e2e8f0; border-radius:9px; font-size:14px;
+      color:#1e293b; background:#f8fafc; outline:none; font-family:inherit;
+      transition:border-color .2s; }
+    .tr2-f input:focus,.tr2-f textarea:focus,.tr2-f select:focus { border-color:#E67E22; background:#fff; }
+    .tr2-f input.err,.tr2-f textarea.err { border-color:#C0392B; }
+    .tr2-f textarea { resize:vertical; min-height:80px; }
+    .tr2-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:460px){ .tr2-row{grid-template-columns:1fr;} }
+    /* ── boutons ── */
+    .tr2-btn { width:100%; padding:13px; border:none; border-radius:11px;
+      font-size:15px; font-weight:700; cursor:pointer; transition:opacity .2s,transform .15s; margin-top:6px; }
+    .tr2-btn:hover:not(:disabled){ opacity:.88; transform:translateY(-1px); }
+    .tr2-btn:disabled { opacity:.45; cursor:not-allowed; }
+    .tr2-btn-primary { background:linear-gradient(135deg,#E67E22,#d35400); color:#fff; }
+    .tr2-btn-sec { background:#f1f5f9; color:#374151; }
+    /* ── messages ── */
+    .tr2-err { background:#FDECEA; color:#C0392B; border-radius:8px;
+      padding:9px 13px; font-size:13px; margin-bottom:12px; display:none; }
+    .tr2-err.show { display:block; }
+    /* ── succès ── */
+    .tr2-ok { text-align:center; padding:16px 0; }
+    .tr2-ok .ic { font-size:52px; margin-bottom:10px; }
+    .tr2-ok h3  { color:#1e293b; font-size:17px; margin:0 0 5px; }
+    .tr2-ok p   { color:#64748b; font-size:13px; margin:0 0 16px; }
+    .tr2-num  { display:inline-block; background:#E67E22; color:#fff;
+      padding:4px 18px; border-radius:20px; font-size:13px; font-weight:700; margin-bottom:14px; }
+
+    /* ── onglet admin ── */
+    #tab-travaux { display:none; }
+    #tab-travaux.active { display:block; }
+    .tr2-admin-header { display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+    .tr2-admin-header h2 { margin:0; font-size:20px; font-weight:700; color:#1e293b; }
+    .tr2-stats-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+    .tr2-stat-card { flex:1; min-width:110px; background:#fff; border-radius:12px;
+      padding:14px 18px; border:1px solid #e2e8f0; text-align:center; }
+    .tr2-stat-card .num { font-size:26px; font-weight:800; }
+    .tr2-stat-card .lbl { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:.5px; }
+    .tr2-stat-card.pending .num { color:#E67E22; }
+    .tr2-stat-card.valid   .num { color:#27AE60; }
+    .tr2-stat-card.reject  .num { color:#C0392B; }
+    .tr2-stat-card.total   .num { color:#1A1A2E; }
+
+    /* ── filtre ── */
+    .tr2-filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+    .tr2-filter-btn { padding:6px 14px; border-radius:20px; border:1.5px solid #e2e8f0;
+      background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; }
+    .tr2-filter-btn.active { border-color:#1A1A2E; background:#1A1A2E; color:#fff; }
+    .tr2-search { flex:1; min-width:180px; padding:7px 13px; border:1.5px solid #e2e8f0;
+      border-radius:20px; font-size:13px; outline:none; }
+    .tr2-search:focus { border-color:#E67E22; }
+
+    /* ── table ── */
+    .tr2-table-wrap { overflow-x:auto; border-radius:12px; border:1px solid #e2e8f0; }
+    .tr2-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .tr2-table th { background:#1A1A2E; color:#fff; padding:11px 14px;
+      text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+    .tr2-table td { padding:11px 14px; border-bottom:1px solid #f1f5f9;
+      vertical-align:middle; }
+    .tr2-table tr:last-child td { border-bottom:none; }
+    .tr2-table tr:hover td { background:#fafbfc; }
+    .tr2-badge { display:inline-block; padding:3px 10px; border-radius:20px;
+      font-size:11px; font-weight:700; white-space:nowrap; }
+    .tr2-badge.en-attente { background:#FEF3E2; color:#92400e; }
+    .tr2-badge.validee    { background:#D1FAE5; color:#065f46; }
+    .tr2-badge.rejetee    { background:#FEE2E2; color:#991b1b; }
+    /* ── actions ── */
+    .tr2-action-btns { display:flex; gap:6px; flex-wrap:nowrap; }
+    .tr2-act { padding:5px 10px; border:none; border-radius:7px;
+      font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; transition:opacity .2s; }
+    .tr2-act:hover { opacity:.8; }
+    .tr2-act-detail  { background:#EFF6FF; color:#1d4ed8; }
+    .tr2-act-valid   { background:#D1FAE5; color:#065f46; }
+    .tr2-act-reject  { background:#FEE2E2; color:#991b1b; }
+    .tr2-empty { text-align:center; padding:40px; color:#94a3b8; font-size:14px; }
+
+    /* ── modale détail ── */
+    #tr2-detail-overlay { display:none; position:fixed; inset:0; z-index:9200;
+      background:rgba(0,0,0,0.5); backdrop-filter:blur(3px);
+      align-items:center; justify-content:center; }
+    #tr2-detail-overlay.open { display:flex; }
+    #tr2-detail-modal { background:#fff; border-radius:16px; width:min(520px,94vw);
+      max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.2);
+      animation:tr2Up .22s cubic-bezier(.22,1,.36,1); }
+    .tr2-detail-hd { background:linear-gradient(135deg,#1A1A2E,#16213E);
+      border-radius:16px 16px 0 0; padding:18px 22px;
+      display:flex; justify-content:space-between; align-items:center; }
+    .tr2-detail-hd h3 { color:#fff; margin:0; font-size:16px; }
+    .tr2-detail-bd { padding:20px 22px; }
+    .tr2-info-row { display:flex; padding:10px 0; border-bottom:1px solid #f1f5f9; gap:12px; }
+    .tr2-info-row:last-child { border-bottom:none; }
+    .tr2-info-lbl { min-width:140px; font-size:11px; text-transform:uppercase;
+      letter-spacing:.5px; color:#64748b; font-weight:600; padding-top:2px; }
+    .tr2-info-val { font-size:14px; color:#1e293b; font-weight:500; flex:1; }
+    .tr2-nature-box { background:#FEF3E2; border-left:4px solid #E67E22;
+      border-radius:0 8px 8px 0; padding:14px 16px; margin:14px 0; }
+    .tr2-nature-box .lbl { font-size:11px; text-transform:uppercase; color:#92400e; font-weight:700; }
+    .tr2-nature-box .val { font-size:14px; color:#1e293b; margin-top:6px; line-height:1.6; }
+    .tr2-comment-box { background:#f8fafc; border-radius:9px; padding:10px 13px;
+      font-size:13px; color:#1e293b; border:1.5px solid #e2e8f0; width:100%;
+      box-sizing:border-box; min-height:70px; resize:vertical; font-family:inherit; outline:none; }
+    .tr2-comment-box:focus { border-color:#E67E22; }
+    .tr2-detail-actions { display:flex; gap:10px; padding:0 22px 20px; flex-wrap:wrap; }
+    .tr2-det-btn { flex:1; padding:11px; border:none; border-radius:10px;
+      font-size:14px; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .tr2-det-btn:hover { opacity:.85; }
+    .tr2-det-valid  { background:#27AE60; color:#fff; }
+    .tr2-det-reject { background:#C0392B; color:#fff; }
+    .tr2-det-close  { background:#f1f5f9; color:#374151; }
+    /* BLOC ADDITIF — Impression */
+    .tr2-det-print  { background:#1A1A2E; color:#fff; }
+    .tr2-det-capture { background:#2563eb; color:#fff; }
+    @media print {
+      body > *:not(#tr2-print-frame) { display:none !important; }
+      #tr2-print-frame { display:block !important; position:fixed; inset:0; background:#fff; z-index:99999; }
+    }
+
+    /* ── badge nav ── */
+    .tr2-nav-badge { display:inline-block; background:#E67E22; color:#fff;
+      border-radius:10px; font-size:10px; font-weight:700;
+      padding:1px 6px; margin-left:6px; vertical-align:middle; }
+
+    /* ── export btn ── */
+    .tr2-export-btn { padding:8px 16px; background:#27AE60; color:#fff; border:none;
+      border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .2s; }
+    .tr2-export-btn:hover { opacity:.85; }
+
+    /* ── BLOC ADDITIF — Interface Validateur ── */
+    #tr2v-overlay { display:none; position:fixed; inset:0; z-index:9300;
+      background:rgba(0,0,0,0.6); backdrop-filter:blur(5px);
+      align-items:center; justify-content:center; }
+    #tr2v-overlay.open { display:flex; }
+    #tr2v-modal { background:#fff; border-radius:20px; width:min(680px,97vw);
+      max-height:95vh; overflow-y:auto;
+      box-shadow:0 28px 72px rgba(0,0,0,0.28);
+      animation:tr2Up .28s cubic-bezier(.22,1,.36,1); }
+    .tr2v-hd { background:linear-gradient(135deg,#1A1A2E,#2d4a7a);
+      border-radius:20px 20px 0 0; padding:20px 26px;
+      display:flex; align-items:center; justify-content:space-between; }
+    .tr2v-hd h2 { color:#fff; margin:0; font-size:17px; font-weight:700; }
+    .tr2v-hd p  { color:#94a3b8; margin:2px 0 0; font-size:12px; }
+    .tr2v-x { background:rgba(255,255,255,.13); border:none; color:#fff;
+      width:32px; height:32px; border-radius:50%; cursor:pointer;
+      font-size:17px; display:flex; align-items:center; justify-content:center; }
+    .tr2v-x:hover { background:rgba(255,255,255,.22); }
+    .tr2v-bd { padding:20px 24px; }
+    .tr2v-user-bar { display:flex; align-items:center; justify-content:space-between;
+      background:#EFF6FF; border-radius:10px; padding:10px 16px; margin-bottom:18px; }
+    .tr2v-user-bar span { color:#1d4ed8; font-weight:600; font-size:13px; }
+    .tr2v-logout { background:#FEE2E2; color:#991b1b; border:none; border-radius:7px;
+      padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+    .tr2v-logout:hover { opacity:.8; }
+    .tr2v-stats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .tr2v-stat { flex:1; min-width:90px; text-align:center; border-radius:10px;
+      padding:12px 8px; border:1px solid #e2e8f0; }
+    .tr2v-stat .n { font-size:24px; font-weight:800; }
+    .tr2v-stat .l { font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.5px; }
+    .tr2v-stat.pending .n { color:#E67E22; }
+    .tr2v-stat.valid   .n { color:#27AE60; }
+    .tr2v-stat.reject  .n { color:#C0392B; }
+    .tr2v-stat.total   .n { color:#1A1A2E; }
+    .tr2v-empty { text-align:center; padding:40px 20px; color:#94a3b8; font-size:14px; }
+    .tr2v-card { background:#fff; border:1.5px solid #e2e8f0; border-radius:12px;
+      margin-bottom:12px; overflow:hidden; transition:border-color .2s; }
+    .tr2v-card:hover { border-color:#cbd5e1; }
+    .tr2v-card-hd { display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; background:#f8fafc; border-bottom:1px solid #f1f5f9; gap:8px; flex-wrap:wrap; }
+    .tr2v-card-num  { font-weight:800; color:#1A1A2E; font-size:14px; }
+    .tr2v-card-date { font-size:12px; color:#64748b; }
+    .tr2v-card-body { padding:14px 16px; }
+    .tr2v-card-row  { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-bottom:8px; }
+    @media(max-width:460px){ .tr2v-card-row{grid-template-columns:1fr;} }
+    .tr2v-lbl { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#64748b; font-weight:600; margin-bottom:2px; }
+    .tr2v-val { font-size:13px; color:#1e293b; font-weight:500; }
+    .tr2v-nat  { background:#FEF3E2; border-left:4px solid #E67E22;
+      border-radius:0 8px 8px 0; padding:10px 14px; margin:10px 0; }
+    .tr2v-nat .l { font-size:10px; text-transform:uppercase; color:#92400e; font-weight:700; }
+    .tr2v-nat .v { font-size:13px; color:#1e293b; margin-top:4px; line-height:1.5; }
+    .tr2v-actions { display:flex; gap:8px; padding:0 16px 14px; flex-wrap:wrap; }
+    .tr2v-btn-ok  { flex:1; padding:9px; background:#27AE60; color:#fff; border:none;
+      border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .tr2v-btn-ko  { flex:1; padding:9px; background:#C0392B; color:#fff; border:none;
+      border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .tr2v-btn-ok:hover,.tr2v-btn-ko:hover { opacity:.85; }
+    .tr2v-btn-ok:disabled,.tr2v-btn-ko:disabled { opacity:.4; cursor:default; }
+    .tr2v-treated { background:#f8fafc; border-radius:7px; padding:8px 12px;
+      font-size:12px; font-style:italic; color:#64748b; }
+    .tr2v-badge-ok { display:inline-block; background:#D1FAE5; color:#065f46;
+      border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .tr2v-badge-ko { display:inline-block; background:#FEE2E2; color:#991b1b;
+      border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .tr2v-badge-wait { display:inline-block; background:#FEF3E2; color:#92400e;
+      border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .tr2v-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+    .tr2v-fb { padding:5px 12px; border-radius:20px; border:1.5px solid #e2e8f0;
+      background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; }
+    .tr2v-fb.active { border-color:#1A1A2E; background:#1A1A2E; color:#fff; }
+    /* reject textarea */
+    .tr2v-reject-wrap { background:#FEF2F2; border-radius:10px; padding:12px 14px; margin-bottom:8px; }
+    .tr2v-reject-wrap label { font-size:11px; font-weight:700; color:#991b1b;
+      text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:6px; }
+    .tr2v-reject-txt { width:100%; box-sizing:border-box; padding:8px 11px;
+      border:1.5px solid #FECACA; border-radius:8px; font-size:13px;
+      font-family:inherit; resize:vertical; min-height:60px; outline:none; }
+    .tr2v-reject-txt:focus { border-color:#C0392B; }
+    /* floating open button (index.html) */
+    #tr2v-open-btn { position:fixed; bottom:90px; right:18px; z-index:8999;
+      background:linear-gradient(135deg,#1A1A2E,#2d4a7a); color:#fff;
+      border:none; border-radius:50px; padding:12px 18px;
+      font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(0,0,0,.3);
+      display:flex; align-items:center; gap:8px; transition:transform .2s,opacity .2s; }
+    #tr2v-open-btn:hover { transform:translateY(-2px); opacity:.92; }
+    #tr2v-open-btn .badge { background:#E67E22; color:#fff; border-radius:10px;
+      font-size:11px; padding:1px 7px; font-weight:800; }
+    /* FIN BLOC ADDITIF — Interface Validateur */
+  `;
+  document.head.appendChild(css);
+
+  // ══════════════════════════════════════════════════════════
+  // PARTIE 1 — FORMULAIRE UTILISATEUR (index.html)
+  // ══════════════════════════════════════════════════════════
+  function initUserForm() {
+    // Injecter la modal formulaire
+    var overlayEl = document.createElement('div');
+    overlayEl.id = 'tr2-overlay';
+    overlayEl.innerHTML = `
+      <div id="tr2-modal" role="dialog" aria-modal="true" aria-label="Demande de Travaux">
+        <div class="tr2-hd">
+          <div>
+            <h2>🔧 Demande de Travaux</h2>
+            <p>Parc Auto DRT Sfax — Tunisie Telecom</p>
+          </div>
+          <button class="tr2-x" id="tr2-close" aria-label="Fermer">✕</button>
+        </div>
+        <div class="tr2-bd">
+
+          <!-- Écran login -->
+          <div id="tr2-sc-login">
+            <div style="text-align:center;padding:10px 0 18px">
+              <div style="font-size:44px;margin-bottom:10px">🔒</div>
+              <h3 style="color:#1e293b;font-size:16px;font-weight:700;margin:0 0 4px">Accès restreint</h3>
+              <p style="color:#64748b;font-size:13px;margin:0 0 20px">Entrez le mot de passe pour accéder</p>
+            </div>
+            <div class="tr2-err" id="tr2-login-err"></div>
+            <div class="tr2-f">
+              <label>Mot de passe <em>*</em></label>
+              <input type="password" id="tr2-pwd" placeholder="••••••••••" autocomplete="current-password">
+            </div>
+            <button class="tr2-btn tr2-btn-primary" id="tr2-login-btn">Accéder</button>
+          </div>
+
+          <!-- Écran formulaire -->
+          <div id="tr2-sc-form" style="display:none">
+            <div class="tr2-err" id="tr2-form-err"></div>
+            <div class="tr2-row">
+              <div class="tr2-f">
+                <label>Nom du demandeur <em>*</em></label>
+                <input type="text" id="tr2-nom" placeholder="Rempli automatiquement" readonly style="background:#f1f5f9;color:#374151;cursor:default;">
+              </div>
+              <div class="tr2-f">
+                <label>Division <em>*</em></label>
+                <input type="text" id="tr2-div" placeholder="Ex: Division Réseau">
+              </div>
+            </div>
+            <div class="tr2-row">
+              <div class="tr2-f">
+                <label>Subdivision <em>*</em></label>
+                <input type="text" id="tr2-subdiv" placeholder="Ex: Subdivision Sfax Nord">
+              </div>
+              <div class="tr2-f"></div>
+            </div>
+            <div class="tr2-row">
+              <div class="tr2-f">
+                <label>Matricule véhicule <em>*</em></label>
+                <input type="text" id="tr2-mat" placeholder="Ex: 17-353430">
+              </div>
+              <div class="tr2-f">
+                <label>Marque <em>*</em></label>
+                <input type="text" id="tr2-marq" placeholder="Ex: Berlingo">
+              </div>
+            </div>
+            <div class="tr2-row">
+              <div class="tr2-f">
+                <label>Date de la demande <em>*</em></label>
+                <input type="date" id="tr2-date">
+              </div>
+              <div class="tr2-f">
+                <label>Index kilométrique <em>*</em></label>
+                <input type="number" id="tr2-km" placeholder="Ex: 45200" min="0">
+              </div>
+            </div>
+            <div class="tr2-f">
+              <label>Nature de l'intervention <em>*</em></label>
+              <textarea id="tr2-nat" placeholder="Décrivez les travaux à effectuer…"></textarea>
+            </div>
+            <button class="tr2-btn tr2-btn-primary" id="tr2-submit-btn">📨 Soumettre la demande</button>
+            <button class="tr2-btn tr2-btn-sec" id="tr2-lock-btn" style="margin-top:6px">🔒 Verrouiller</button>
+          </div>
+
+          <!-- Écran succès -->
+          <div id="tr2-sc-ok" style="display:none">
+            <div class="tr2-ok">
+              <div class="ic">✅</div>
+              <h3>Demande soumise !</h3>
+              <div class="tr2-num" id="tr2-num-ok"></div>
+              <p>Votre demande a été enregistrée et sera traitée par le chef de parc.</p>
+              <button class="tr2-btn tr2-btn-primary" id="tr2-new-btn">➕ Nouvelle demande</button>
+            </div>
+          </div>
+
+          <!-- Écran notification statut (BLOC ADDITIF) -->
+          <div id="tr2-sc-notif" style="display:none">
+            <div class="tr2-hd" style="border-radius:0">
+              <div><h2>📋 Mes Demandes</h2><p id="tr2-notif-user">—</p></div>
+              <button class="tr2-x" id="tr2-notif-close" aria-label="Fermer">✕</button>
+            </div>
+            <div class="tr2-bd" id="tr2-notif-list"></div>
+            <div style="padding:0 26px 20px">
+              <button class="tr2-btn tr2-btn-primary" id="tr2-notif-new-btn">➕ Nouvelle demande</button>
+            </div>
+          </div>
+
+        </div>
+      </div>`;
+    document.body.appendChild(overlayEl);
+
+    function trScreen(n) {
+      document.getElementById('tr2-sc-login').style.display = n==='login' ? '' : 'none';
+      document.getElementById('tr2-sc-form').style.display  = n==='form'  ? '' : 'none';
+      document.getElementById('tr2-sc-ok').style.display    = n==='ok'    ? '' : 'none';
+      document.getElementById('tr2-sc-notif').style.display = n==='notif' ? '' : 'none';
+    }
+
+    // ── Rendu écran notification demandeur ────────────────────
+    function renderNotifScreen(nom) {
+      var data = getData();
+      var demandes = (data && data.demandesTravaux)
+        ? data.demandesTravaux.filter(function(d){ return d.nomDemandeur === nom; }).slice().reverse()
+        : [];
+      document.getElementById('tr2-notif-user').textContent = '👤 ' + nom;
+      var listEl = document.getElementById('tr2-notif-list');
+      if (!demandes.length) {
+        listEl.innerHTML = '<p style="color:#64748b;font-size:13px;text-align:center;padding:10px 0">Aucune demande pour le moment.</p>';
+        return;
+      }
+      listEl.innerHTML = demandes.map(function(d) {
+        var isOk  = d.statut === 'VALIDÉE';
+        var isKo  = d.statut === 'REJETÉE';
+        var bg    = isOk ? '#D1FAE5' : isKo ? '#FEE2E2' : '#FEF3E2';
+        var color = isOk ? '#065f46' : isKo ? '#991b1b' : '#92400e';
+        var icon  = isOk ? '✅' : isKo ? '❌' : '⏳';
+        var label = isOk ? 'Validée' : isKo ? 'Rejetée' : 'En attente';
+        var extra = '';
+        if ((isOk || isKo) && d.validePar) extra += '<div style="font-size:11px;color:#64748b;margin-top:3px">Par : ' + d.validePar + (d.dateTraitement ? ' — ' + formatDate(d.dateTraitement) : '') + '</div>';
+        if (isKo && d.commentaire) extra += '<div style="font-size:12px;color:#991b1b;margin-top:4px;background:#FEE2E2;padding:6px 10px;border-radius:7px">💬 ' + d.commentaire + '</div>';
+        return '<div style="border:1.5px solid ' + color + '33;border-radius:11px;padding:12px 14px;margin-bottom:10px;background:' + bg + '22">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+            '<span style="font-weight:800;font-size:14px;color:#1A1A2E">' + (d.numero||'—') + '</span>' +
+            '<span style="background:' + bg + ';color:' + color + ';border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">' + icon + ' ' + label + '</span>' +
+          '</div>' +
+          '<div style="font-size:12px;color:#64748b;margin-bottom:4px">' + formatDate(d.dateDemande) + ' — ' + (d.matricule||'') + ' ' + (d.marque||'') + '</div>' +
+          '<div style="font-size:13px;color:#374151;line-height:1.4">' + (d.natureIntervention||'') + '</div>' +
+          extra +
+        '</div>';
+      }).join('');
+    }
+
+    // Invalider les anciennes sessions sans nom utilisateur
+    (function() {
+      var sess = getSess();
+      if (sess && !sess.nom) delSess();
+    })();
+
+    window.openTravauxModal = function() {
+      document.getElementById('tr2-overlay').classList.add('open');
+      var sess = getSess();
+      if (sess) {
+        document.getElementById('tr2-date').value = new Date().toISOString().slice(0,10);
+        if (sess.nom) document.getElementById('tr2-nom').value = sess.nom;
+        // Vérifier si le demandeur a des demandes existantes → afficher statuts
+        var data = getData();
+        var hasPrev = data && data.demandesTravaux && data.demandesTravaux.some(function(d){ return d.nomDemandeur === sess.nom; });
+        if (hasPrev) {
+          renderNotifScreen(sess.nom);
+          trScreen('notif');
+        } else {
+          trScreen('form');
+          setTimeout(function(){ document.getElementById('tr2-div').focus(); }, 100);
+        }
+      } else {
+        trScreen('login');
+        document.getElementById('tr2-pwd').value = '';
+        document.getElementById('tr2-login-err').classList.remove('show');
+        setTimeout(function(){ document.getElementById('tr2-pwd').focus(); }, 100);
+      }
+    };
+
+    window.closeTravauxModal = function() {
+      document.getElementById('tr2-overlay').classList.remove('open');
+    };
+
+    // Fermer
+    document.getElementById('tr2-close').addEventListener('click', window.closeTravauxModal);
+    document.getElementById('tr2-overlay').addEventListener('click', function(e) {
+      if (e.target.id === 'tr2-overlay') window.closeTravauxModal();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('tr2-overlay').classList.contains('open'))
+        window.closeTravauxModal();
+    });
+
+    // Login
+    function doLogin() {
+      var pwd = document.getElementById('tr2-pwd').value.trim();
+      var err = document.getElementById('tr2-login-err');
+      var nom = TRAVAUX_USERS[pwd];
+      if (nom) {
+        setSess(nom);
+        err.classList.remove('show');
+        document.getElementById('tr2-date').value = new Date().toISOString().slice(0,10);
+        document.getElementById('tr2-nom').value = nom;
+        trScreen('form');
+        setTimeout(function(){ document.getElementById('tr2-div').focus(); }, 100);
+      } else {
+        err.textContent = 'Mot de passe incorrect. Veuillez réessayer.';
+        err.classList.add('show');
+        document.getElementById('tr2-pwd').value = '';
+      }
+    }
+    document.getElementById('tr2-login-btn').addEventListener('click', doLogin);
+    document.getElementById('tr2-pwd').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    // Verrouiller
+    document.getElementById('tr2-lock-btn').addEventListener('click', function() {
+      delSess(); trScreen('login');
+      document.getElementById('tr2-pwd').value = '';
+    });
+
+    // Boutons écran notification (BLOC ADDITIF)
+    document.getElementById('tr2-notif-close').addEventListener('click', window.closeTravauxModal);
+    document.getElementById('tr2-notif-new-btn').addEventListener('click', function() {
+      var sess = getSess();
+      ['tr2-div','tr2-subdiv','tr2-mat','tr2-marq','tr2-km','tr2-nat'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('tr2-nom').value = sess && sess.nom ? sess.nom : '';
+      document.getElementById('tr2-date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('tr2-form-err').classList.remove('show');
+      trScreen('form');
+      setTimeout(function(){ document.getElementById('tr2-div').focus(); }, 100);
+    });
+
+    // Soumettre
+    document.getElementById('tr2-submit-btn').addEventListener('click', function() {
+      var ids  = ['tr2-nom','tr2-div','tr2-subdiv','tr2-mat','tr2-marq','tr2-date','tr2-km','tr2-nat'];
+      var vals = {};
+      var ok   = true;
+      ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        var v  = el.value.trim();
+        if (!v) { el.classList.add('err'); ok = false; }
+        else      el.classList.remove('err');
+        vals[id] = v;
+      });
+      var errEl = document.getElementById('tr2-form-err');
+      if (!ok) {
+        errEl.textContent = 'Tous les champs sont obligatoires.';
+        errEl.classList.add('show');
+        return;
+      }
+      errEl.classList.remove('show');
+
+      // Attendre que parcAuto soit prêt
+      var waitCount = 0;
+      function trySubmit() {
+        var data = getData();
+        if (!data && waitCount < 20) { waitCount++; setTimeout(trySubmit, 300); return; }
+        if (!data) {
+          errEl.textContent = 'Application non prête. Rechargez la page.';
+          errEl.classList.add('show');
+          return;
+        }
+        var num = nextNumero();
+        var demande = {
+          id:                 'dt_' + Date.now(),
+          numero:             num,
+          nomDemandeur:       vals['tr2-nom'],
+          division:           vals['tr2-div'],
+          subdivision:        vals['tr2-subdiv'],
+          matricule:          vals['tr2-mat'],
+          marque:             vals['tr2-marq'],
+          dateDemande:        vals['tr2-date'],
+          indexKm:            vals['tr2-km'],
+          natureIntervention: vals['tr2-nat'],
+          statut:             'EN ATTENTE',
+          dateCreation:       new Date().toISOString(),
+          commentaire:        ''
+        };
+        data.demandesTravaux.push(demande);
+        saveData();
+        document.getElementById('tr2-num-ok').textContent = 'N° ' + num;
+        // Afficher l'écran succès puis rediriger vers notif après 2s
+        trScreen('ok');
+        setTimeout(function() {
+          var s = getSess();
+          if (s && s.nom) { renderNotifScreen(s.nom); trScreen('notif'); }
+        }, 2200);
+      }
+      trySubmit();
+    });
+
+    // Nouvelle demande (depuis écran succès)
+    document.getElementById('tr2-new-btn').addEventListener('click', function() {
+      ['tr2-div','tr2-subdiv','tr2-mat','tr2-marq','tr2-km','tr2-nat'].forEach(function(id) {
+        document.getElementById(id).value = '';
+      });
+      var sess = getSess();
+      document.getElementById('tr2-nom').value = sess && sess.nom ? sess.nom : '';
+      document.getElementById('tr2-date').value = new Date().toISOString().slice(0,10);
+      document.getElementById('tr2-form-err').classList.remove('show');
+      trScreen('form');
+      setTimeout(function(){ document.getElementById('tr2-div').focus(); }, 100);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PARTIE 2 — TABLEAU DE BORD ADMIN (admin.html)
+  // ══════════════════════════════════════════════════════════
+  function initAdminTab() {
+
+    // ── Injecter l'onglet dans la navigation sidebar ────────
+    function injectNavItem() {
+      var navItems = document.querySelectorAll('.nav-item[data-nav]');
+      if (!navItems.length) { setTimeout(injectNavItem, 500); return; }
+
+      // Ne pas injecter deux fois
+      if (document.querySelector('.nav-item[data-nav="travaux"]')) return;
+
+      var lastNav = navItems[navItems.length - 1];
+      var navItem = document.createElement('div');
+      navItem.className = 'nav-item';
+      navItem.setAttribute('data-nav', 'travaux');
+      navItem.innerHTML = `<span class="nav-icon">🔧</span>
+        <span class="nav-label">Demandes Travaux<span class="tr2-nav-badge" id="tr2-nav-badge" style="display:none">0</span></span>`;
+      lastNav.parentNode.insertBefore(navItem, lastNav.nextSibling);
+
+      navItem.addEventListener('click', function() {
+        if (window.parcAuto && typeof window.parcAuto.showTab === 'function') {
+          window.parcAuto.showTab('travaux');
+        }
+        renderAdminTab();
+      });
+    }
+
+    // ── Injecter le contenu de l'onglet ────────────────────
+    function injectTabContent() {
+      if (document.getElementById('tab-travaux')) return;
+      var tabContainer = document.querySelector('.tab-content')
+        || document.querySelector('#tab-dashboard')
+        || document.querySelector('[id^="tab-"]');
+      if (!tabContainer) { setTimeout(injectTabContent, 500); return; }
+
+      var tabEl = document.createElement('div');
+      tabEl.id        = 'tab-travaux';
+      tabEl.className = 'tab-content';
+      tabEl.innerHTML = `
+        <div class="tr2-admin-header">
+          <h2>🔧 Demandes de Travaux</h2>
+          <button class="tr2-export-btn" id="tr2-export-btn">📊 Exporter Excel</button>
+        </div>
+
+        <div class="tr2-stats-bar" id="tr2-stats-bar">
+          <div class="tr2-stat-card total">
+            <div class="num" id="tr2-st-total">0</div>
+            <div class="lbl">Total</div>
+          </div>
+          <div class="tr2-stat-card pending">
+            <div class="num" id="tr2-st-pending">0</div>
+            <div class="lbl">En attente</div>
+          </div>
+          <div class="tr2-stat-card valid">
+            <div class="num" id="tr2-st-valid">0</div>
+            <div class="lbl">Validées</div>
+          </div>
+          <div class="tr2-stat-card reject">
+            <div class="num" id="tr2-st-reject">0</div>
+            <div class="lbl">Rejetées</div>
+          </div>
+        </div>
+
+        <div class="tr2-filter-bar">
+          <button class="tr2-filter-btn active" data-filter="TOUS">Toutes</button>
+          <button class="tr2-filter-btn" data-filter="EN ATTENTE">⏳ En attente</button>
+          <button class="tr2-filter-btn" data-filter="VALIDÉE">✅ Validées</button>
+          <button class="tr2-filter-btn" data-filter="REJETÉE">❌ Rejetées</button>
+          <input type="text" class="tr2-search" id="tr2-search" placeholder="🔍 Rechercher…">
+        </div>
+
+        <div class="tr2-table-wrap">
+          <table class="tr2-table">
+            <thead>
+              <tr>
+                <th>N°</th>
+                <th>Date</th>
+                <th>Demandeur</th>
+                <th>Division</th>
+                <th>Subdivision</th>
+                <th>Matricule</th>
+                <th>Marque</th>
+                <th>Km</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tr2-tbody"></tbody>
+          </table>
+        </div>`;
+      tabContainer.parentNode.insertBefore(tabEl, tabContainer.nextSibling);
+
+      // Filtres
+      var currentFilter = 'TOUS';
+      tabEl.querySelectorAll('.tr2-filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          tabEl.querySelectorAll('.tr2-filter-btn').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          renderTable(currentFilter, document.getElementById('tr2-search').value);
+        });
+      });
+      document.getElementById('tr2-search').addEventListener('input', function() {
+        renderTable(currentFilter, this.value);
+      });
+
+      // Export Excel
+      document.getElementById('tr2-export-btn').addEventListener('click', exportExcel);
+    }
+
+    // ── Rendu du tableau ────────────────────────────────────
+    var _currentFilter = 'TOUS';
+    var _currentSearch = '';
+
+    function renderTable(filter, search) {
+      _currentFilter = filter || 'TOUS';
+      _currentSearch = search || '';
+      var data = getData();
+      var demandes = (data && data.demandesTravaux) ? data.demandesTravaux.slice().reverse() : [];
+
+      if (_currentFilter !== 'TOUS') {
+        demandes = demandes.filter(function(d) { return d.statut === _currentFilter; });
+      }
+      if (_currentSearch.trim()) {
+        var q = _currentSearch.trim().toLowerCase();
+        demandes = demandes.filter(function(d) {
+          return (d.numero||'').toLowerCase().includes(q)
+            || (d.nomDemandeur||'').toLowerCase().includes(q)
+            || (d.matricule||'').toLowerCase().includes(q)
+            || (d.division||'').toLowerCase().includes(q)
+            || (d.marque||'').toLowerCase().includes(q);
+        });
+      }
+
+      var tbody = document.getElementById('tr2-tbody');
+      if (!tbody) return;
+
+      if (!demandes.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="tr2-empty">Aucune demande trouvée</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = demandes.map(function(d) {
+        var badgeCls = d.statut === 'VALIDÉE' ? 'validee' : d.statut === 'REJETÉE' ? 'rejetee' : 'en-attente';
+        var badgeTxt = d.statut === 'VALIDÉE' ? '✅ Validée' : d.statut === 'REJETÉE' ? '❌ Rejetée' : '⏳ En attente';
+        var km = parseInt(d.indexKm||0).toLocaleString('fr-FR');
+        var actions = d.statut === 'EN ATTENTE'
+          ? `<div class="tr2-action-btns">
+               <button class="tr2-act tr2-act-detail" data-id="${d.id}">👁 Voir</button>
+               <button class="tr2-act tr2-act-valid"  data-id="${d.id}">✅</button>
+               <button class="tr2-act tr2-act-reject" data-id="${d.id}">❌</button>
+             </div>`
+          : `<button class="tr2-act tr2-act-detail" data-id="${d.id}">👁 Voir</button>`;
+        return `<tr>
+          <td><strong style="color:#E67E22">${d.numero||'-'}</strong></td>
+          <td style="white-space:nowrap">${formatDate(d.dateDemande)}</td>
+          <td>${d.nomDemandeur||'-'}</td>
+          <td>${d.division||'-'}</td>
+          <td>${d.subdivision||'-'}</td>
+          <td><strong>${d.matricule||'-'}</strong></td>
+          <td>${d.marque||'-'}</td>
+          <td style="white-space:nowrap">${km} km</td>
+          <td><span class="tr2-badge ${badgeCls}">${badgeTxt}</span></td>
+          <td>${actions}</td>
+        </tr>`;
+      }).join('');
+
+      // Events boutons
+      tbody.querySelectorAll('.tr2-act-detail').forEach(function(btn) {
+        btn.addEventListener('click', function() { openDetail(btn.dataset.id); });
+      });
+      tbody.querySelectorAll('.tr2-act-valid').forEach(function(btn) {
+        btn.addEventListener('click', function() { changeStatut(btn.dataset.id, 'VALIDÉE', ''); });
+      });
+      tbody.querySelectorAll('.tr2-act-reject').forEach(function(btn) {
+        btn.addEventListener('click', function() { openDetail(btn.dataset.id, 'reject'); });
+      });
+    }
+
+    function renderStats() {
+      var data = getData();
+      var demandes = (data && data.demandesTravaux) ? data.demandesTravaux : [];
+      var pending = demandes.filter(function(d){ return d.statut === 'EN ATTENTE'; }).length;
+      var valid   = demandes.filter(function(d){ return d.statut === 'VALIDÉE'; }).length;
+      var reject  = demandes.filter(function(d){ return d.statut === 'REJETÉE'; }).length;
+
+      setText('tr2-st-total',   demandes.length);
+      setText('tr2-st-pending', pending);
+      setText('tr2-st-valid',   valid);
+      setText('tr2-st-reject',  reject);
+
+      // Badge nav
+      var badge = document.getElementById('tr2-nav-badge');
+      if (badge) {
+        badge.style.display = pending > 0 ? '' : 'none';
+        badge.textContent   = pending;
+      }
+    }
+
+    function setText(id, val) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+
+    function renderAdminTab() {
+      renderStats();
+      renderTable(_currentFilter, _currentSearch);
+    }
+
+    // ── Modale détail ───────────────────────────────────────
+    var detailOverlay = document.createElement('div');
+    detailOverlay.id = 'tr2-detail-overlay';
+    detailOverlay.innerHTML = `
+      <div id="tr2-detail-modal">
+        <div class="tr2-detail-hd">
+          <h3 id="tr2-detail-titre">Détail de la demande</h3>
+          <button class="tr2-x" id="tr2-detail-close">✕</button>
+        </div>
+        <div class="tr2-detail-bd" id="tr2-detail-bd"></div>
+        <div class="tr2-detail-actions" id="tr2-detail-actions"></div>
+      </div>`;
+    document.body.appendChild(detailOverlay);
+
+    document.getElementById('tr2-detail-close').addEventListener('click', function() {
+      detailOverlay.classList.remove('open');
+    });
+    detailOverlay.addEventListener('click', function(e) {
+      if (e.target === detailOverlay) detailOverlay.classList.remove('open');
+    });
+
+    function openDetail(id, mode) {
+      var data = getData();
+      var d = (data && data.demandesTravaux || []).find(function(x){ return x.id === id; });
+      if (!d) return;
+
+      document.getElementById('tr2-detail-titre').textContent = 'Demande ' + (d.numero||'');
+
+      var km = parseInt(d.indexKm||0).toLocaleString('fr-FR');
+      var statutHtml = d.statut === 'VALIDÉE'
+        ? '<span class="tr2-badge validee">✅ Validée</span>'
+        : d.statut === 'REJETÉE'
+        ? '<span class="tr2-badge rejetee">❌ Rejetée</span>'
+        : '<span class="tr2-badge en-attente">⏳ En attente</span>';
+
+      document.getElementById('tr2-detail-bd').innerHTML = `
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Demandeur</div><div class="tr2-info-val">${d.nomDemandeur||'-'}</div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Division</div><div class="tr2-info-val">${d.division||'-'}</div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Subdivision</div><div class="tr2-info-val">${d.subdivision||'-'}</div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Matricule</div><div class="tr2-info-val"><strong>${d.matricule||'-'}</strong></div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Marque</div><div class="tr2-info-val">${d.marque||'-'}</div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Date demande</div><div class="tr2-info-val">${formatDate(d.dateDemande)}</div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Index km</div><div class="tr2-info-val">${km} km</div></div>
+        <div class="tr2-info-row"><div class="tr2-info-lbl">Statut</div><div class="tr2-info-val">${statutHtml}</div></div>
+        <div class="tr2-nature-box">
+          <div class="lbl">Nature de l'intervention</div>
+          <div class="val">${d.natureIntervention||'-'}</div>
+        </div>
+        ${d.commentaire ? `<div class="tr2-info-row"><div class="tr2-info-lbl">Commentaire</div><div class="tr2-info-val">${d.commentaire}</div></div>` : ''}
+        ${d.statut === 'EN ATTENTE' ? `
+          <div class="tr2-f" style="margin-top:12px">
+            <label>Commentaire (optionnel)</label>
+            <textarea class="tr2-comment-box" id="tr2-comment-input" placeholder="Ajouter un commentaire…"></textarea>
+          </div>` : ''}`;
+
+      var actionsEl = document.getElementById('tr2-detail-actions');
+      if (d.statut === 'EN ATTENTE') {
+        actionsEl.innerHTML = `
+          <button class="tr2-det-btn tr2-det-valid"  id="tr2-det-valid-btn">✅ Valider</button>
+          <button class="tr2-det-btn tr2-det-reject" id="tr2-det-reject-btn">❌ Rejeter</button>
+          <button class="tr2-det-btn tr2-det-print"   id="tr2-det-print-btn">🖨️ Imprimer</button>
+          <button class="tr2-det-btn tr2-det-capture" id="tr2-det-capture-btn">📸 Image</button>
+          <button class="tr2-det-btn tr2-det-close"   id="tr2-det-close-btn">Fermer</button>`;
+        document.getElementById('tr2-det-valid-btn').addEventListener('click', function() {
+          var comment = (document.getElementById('tr2-comment-input')||{}).value || '';
+          changeStatut(id, 'VALIDÉE', comment);
+          detailOverlay.classList.remove('open');
+        });
+        document.getElementById('tr2-det-reject-btn').addEventListener('click', function() {
+          var comment = (document.getElementById('tr2-comment-input')||{}).value || '';
+          changeStatut(id, 'REJETÉE', comment);
+          detailOverlay.classList.remove('open');
+        });
+        document.getElementById('tr2-det-close-btn').addEventListener('click', function() {
+          detailOverlay.classList.remove('open');
+        });
+        document.getElementById('tr2-det-print-btn').addEventListener('click', function() { printDemande(d); });
+        document.getElementById('tr2-det-capture-btn').addEventListener('click', function() { captureDemande(d); });
+        // Focus automatique si mode rejet
+        if (mode === 'reject') {
+          setTimeout(function() {
+            var ci = document.getElementById('tr2-comment-input');
+            if (ci) ci.focus();
+          }, 150);
+        }
+      } else {
+        actionsEl.innerHTML = `
+          <button class="tr2-det-btn tr2-det-print"   id="tr2-det-print-btn">🖨️ Imprimer</button>
+          <button class="tr2-det-btn tr2-det-capture" id="tr2-det-capture-btn">📸 Image</button>
+          <button class="tr2-det-btn tr2-det-close"   id="tr2-det-close-btn">Fermer</button>`;
+        document.getElementById('tr2-det-close-btn').addEventListener('click', function() {
+          detailOverlay.classList.remove('open');
+        });
+        document.getElementById('tr2-det-capture-btn').addEventListener('click', function() { captureDemande(d); });
+      }
+
+      detailOverlay.classList.add('open');
+    }
+
+    // BLOC ADDITIF — Capture JPEG de la demande
+    function captureDemande(d) {
+      // Charger html2canvas si pas déjà chargé
+      function doCapture() {
+        var km = parseInt(d.indexKm||0).toLocaleString('fr-FR');
+        var statutColor = d.statut === 'VALIDÉE' ? '#27AE60' : d.statut === 'REJETÉE' ? '#C0392B' : '#E67E22';
+        var statutLabel = d.statut === 'VALIDÉE' ? '✅ Validée' : d.statut === 'REJETÉE' ? '❌ Rejetée' : '⏳ En attente';
+        var now = new Date();
+        var dateImpression = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+
+        // Créer un div temporaire hors écran pour le rendu
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:700px;background:#fff;padding:24px;font-family:Arial,sans-serif;color:#1e293b;z-index:-1;';
+        wrap.innerHTML =
+          '<div style="background:#1A1A2E;color:#fff;padding:20px 24px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">' +
+            '<div><div style="font-size:18px;font-weight:700;margin-bottom:3px;">🔧 Demande de Travaux</div><div style="font-size:11px;opacity:.7;">Parc Auto DRT Sfax — Tunisie Telecom</div></div>' +
+            '<div style="background:#E67E22;color:#fff;padding:5px 16px;border-radius:20px;font-size:13px;font-weight:700;">' + (d.numero||'') + '</div>' +
+          '</div>' +
+          '<div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;margin-bottom:16px;">' +
+            '<div style="display:flex;border-bottom:1px solid #f1f5f9;">' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Demandeur</div><div style="font-size:13px;font-weight:600;">' + (d.nomDemandeur||'-') + '</div></div>' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Division</div><div style="font-size:13px;font-weight:600;">' + (d.division||'-') + '</div></div>' +
+            '</div>' +
+            '<div style="display:flex;border-bottom:1px solid #f1f5f9;">' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Matricule</div><div style="font-size:13px;font-weight:600;">' + (d.matricule||'-') + '</div></div>' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Marque</div><div style="font-size:13px;font-weight:600;">' + (d.marque||'-') + '</div></div>' +
+            '</div>' +
+            '<div style="display:flex;border-bottom:1px solid #f1f5f9;">' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Date demande</div><div style="font-size:13px;font-weight:600;">' + formatDate(d.dateDemande) + '</div></div>' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Index km</div><div style="font-size:13px;font-weight:600;">' + km + ' km</div></div>' +
+            '</div>' +
+            '<div style="display:flex;">' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Statut</div><div style="font-size:13px;font-weight:700;color:' + statutColor + ';">' + statutLabel + '</div></div>' +
+              '<div style="flex:1;padding:10px 14px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;">Date création</div><div style="font-size:13px;font-weight:600;">' + formatDate(d.dateCreation) + '</div></div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="background:#FEF3E2;border-left:4px solid #E67E22;padding:12px 16px;margin-bottom:16px;">' +
+            '<div style="font-size:9px;text-transform:uppercase;color:#92400e;font-weight:700;margin-bottom:4px;">Nature de l\'intervention</div>' +
+            '<div style="font-size:13px;line-height:1.6;">' + (d.natureIntervention||'-') + '</div>' +
+          '</div>' +
+          (d.commentaire ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:16px;"><div style="font-size:9px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">Commentaire / Décision</div><div style="font-size:13px;">' + d.commentaire + '</div></div>' : '') +
+          '<div style="text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px;">Généré le ' + dateImpression + '<br>Parc Auto DRT Sfax — Tunisie Telecom — Direction Régionale de Sfax</div>';
+
+        document.body.appendChild(wrap);
+
+        html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(function(canvas) {
+          document.body.removeChild(wrap);
+          var link = document.createElement('a');
+          link.download = 'DT-' + (d.numero||d.id||'demande') + '.jpg';
+          link.href = canvas.toDataURL('image/jpeg', 0.95);
+          link.click();
+        }).catch(function(err) {
+          document.body.removeChild(wrap);
+          console.error('Capture error:', err);
+          alert('Erreur lors de la capture. Utilisez Imprimer à la place.');
+        });
+      }
+
+      // Charger html2canvas si nécessaire
+      if (typeof html2canvas === 'undefined') {
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = doCapture;
+        s.onerror = function() { alert('Impossible de charger html2canvas. Vérifiez votre connexion.'); };
+        document.head.appendChild(s);
+      } else {
+        doCapture();
+      }
+    }
+
+    // BLOC ADDITIF — Impression demande (sans popup)
+    function printDemande(d) {
+      var km = parseInt(d.indexKm||0).toLocaleString('fr-FR');
+      var statutColor = d.statut === 'VALIDÉE' ? '#27AE60' : d.statut === 'REJETÉE' ? '#C0392B' : '#E67E22';
+      var statutLabel = d.statut === 'VALIDÉE' ? '✅ Validée' : d.statut === 'REJETÉE' ? '❌ Rejetée' : '⏳ En attente';
+      var now = new Date();
+      var dateImpression = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+
+      // Supprimer ancienne frame si existante
+      var old = document.getElementById('tr2-print-frame');
+      if (old) old.parentNode.removeChild(old);
+
+      // Créer un div caché qui s'affiche uniquement à l\'impression
+      var frame = document.createElement('div');
+      frame.id = 'tr2-print-frame';
+      frame.style.cssText = 'display:none;';
+      frame.innerHTML =
+        '<style id="tr2-print-style">' +
+        '@media print {' +
+          'body > *:not(#tr2-print-frame) { display:none !important; }' +
+          '#tr2-print-frame { display:block !important; }' +
+          '.tr2-pg { font-family:Arial,sans-serif; color:#1e293b; max-width:700px; margin:0 auto; padding:24px; }' +
+          '.tr2-ph { background:#1A1A2E; color:#fff; padding:20px 24px; border-radius:10px 10px 0 0; display:flex; align-items:center; justify-content:space-between; margin-bottom:0; }' +
+          '.tr2-ph h1 { font-size:18px; margin:0 0 3px; }' +
+          '.tr2-ph p  { font-size:11px; opacity:.7; margin:0; }' +
+          '.tr2-pnum { background:#E67E22; color:#fff; padding:5px 16px; border-radius:20px; font-size:13px; font-weight:700; }' +
+          '.tr2-psec { border:1px solid #e2e8f0; border-radius:0 0 10px 10px; overflow:hidden; margin-bottom:16px; }' +
+          '.tr2-prow { display:flex; border-bottom:1px solid #f1f5f9; }' +
+          '.tr2-prow:last-child { border-bottom:none; }' +
+          '.tr2-pcell { flex:1; padding:10px 14px; }' +
+          '.tr2-plbl { font-size:9px; text-transform:uppercase; color:#94a3b8; letter-spacing:.5px; margin-bottom:2px; }' +
+          '.tr2-pval { font-size:13px; font-weight:600; }' +
+          '.tr2-pnat { background:#FEF3E2; border-left:4px solid #E67E22; padding:12px 16px; margin-bottom:16px; }' +
+          '.tr2-pnat .l { font-size:9px; text-transform:uppercase; color:#92400e; font-weight:700; margin-bottom:4px; }' +
+          '.tr2-pnat .v { font-size:13px; line-height:1.6; }' +
+          '.tr2-pcom { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; margin-bottom:16px; }' +
+          '.tr2-pst  { display:inline-block; padding:3px 12px; border-radius:20px; font-size:11px; font-weight:700; }' +
+          '.tr2-pfoot { text-align:center; font-size:9px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:12px; }' +
+        '}' +
+        '</style>' +
+        '<div class="tr2-pg">' +
+          '<div class="tr2-ph">' +
+            '<div><h1>🔧 Demande de Travaux</h1><p>Parc Auto DRT Sfax — Tunisie Telecom</p></div>' +
+            '<div class="tr2-pnum">' + (d.numero||'') + '</div>' +
+          '</div>' +
+          '<div class="tr2-psec">' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Demandeur</div><div class="tr2-pval">' + (d.nomDemandeur||'-') + '</div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Division</div><div class="tr2-pval">' + (d.division||'-') + '</div></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Subdivision</div><div class="tr2-pval">' + (d.subdivision||'-') + '</div></div>' +
+              '<div class="tr2-pcell"></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Matricule véhicule</div><div class="tr2-pval">' + (d.matricule||'-') + '</div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Marque</div><div class="tr2-pval">' + (d.marque||'-') + '</div></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Date de la demande</div><div class="tr2-pval">' + formatDate(d.dateDemande) + '</div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Index kilométrique</div><div class="tr2-pval">' + km + ' km</div></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Statut</div><div class="tr2-pval"><span class="tr2-pst" style="background:' + statutColor + '22;color:' + statutColor + ';border:1px solid ' + statutColor + '44">' + statutLabel + '</span></div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Date création</div><div class="tr2-pval">' + formatDate(d.dateCreation) + '</div></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="tr2-pnat"><div class="l">Nature de l\'intervention demandée</div><div class="v">' + (d.natureIntervention||'-') + '</div></div>' +
+          (d.commentaire ? '<div class="tr2-pcom"><div class="tr2-plbl">Commentaire / Décision</div><div style="font-size:13px;margin-top:4px">' + d.commentaire + '</div></div>' : '') +
+          '<div class="tr2-pfoot">Imprimé le ' + dateImpression + '<br>Parc Auto DRT Sfax — Tunisie Telecom — Direction Régionale de Sfax</div>' +
+        '</div>';
+
+      document.body.appendChild(frame);
+
+      // Utiliser iframe pour contourner le blocage de window.print()
+      var iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:99999;';
+      iframe.srcdoc = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
+        'body{font-family:Arial,sans-serif;color:#1e293b;margin:0;padding:24px;}' +
+        '.tr2-pg{max-width:700px;margin:0 auto;}' +
+        '.tr2-ph{background:#1A1A2E;color:#fff;padding:20px 24px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between;}' +
+        '.tr2-ph h1{font-size:18px;margin:0 0 3px;}' +
+        '.tr2-ph p{font-size:11px;opacity:.7;margin:0;}' +
+        '.tr2-pnum{background:#E67E22;color:#fff;padding:5px 16px;border-radius:20px;font-size:13px;font-weight:700;}' +
+        '.tr2-psec{border:1px solid #e2e8f0;border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:16px;}' +
+        '.tr2-prow{display:flex;border-bottom:1px solid #f1f5f9;}' +
+        '.tr2-prow:last-child{border-bottom:none;}' +
+        '.tr2-pcell{flex:1;padding:10px 14px;}' +
+        '.tr2-plbl{font-size:9px;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:2px;}' +
+        '.tr2-pval{font-size:13px;font-weight:600;}' +
+        '.tr2-pnat{background:#FEF3E2;border-left:4px solid #E67E22;padding:12px 16px;margin-bottom:16px;}' +
+        '.tr2-pnat .l{font-size:9px;text-transform:uppercase;color:#92400e;font-weight:700;margin-bottom:4px;}' +
+        '.tr2-pnat .v{font-size:13px;line-height:1.6;}' +
+        '.tr2-pcom{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:16px;}' +
+        '.tr2-pst{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;}' +
+        '.tr2-pfoot{text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px;}' +
+        '.no-print{text-align:center;margin-bottom:16px;}' +
+        '.print-btn{background:#1A1A2E;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;cursor:pointer;margin-right:8px;}' +
+        '.close-btn{background:#f1f5f9;color:#374151;border:none;padding:10px 28px;border-radius:8px;font-size:14px;cursor:pointer;}' +
+        '@media print{.no-print{display:none!important;}}' +
+        '</style></head><body>' +
+        '<div class="no-print">' +
+          '<button class="print-btn" onclick="window.print()">\uD83D\uDDA8\uFE0F Lancer l\'impression</button>' +
+          '<button class="close-btn" onclick="parent.document.getElementById(\'tr2-iframe-wrap\').remove()">✕ Fermer</button>' +
+        '</div>' +
+        '<div class="tr2-pg">' +
+          '<div class="tr2-ph">' +
+            '<div><h1>🔧 Demande de Travaux</h1><p>Parc Auto DRT Sfax — Tunisie Telecom</p></div>' +
+            '<div class="tr2-pnum">' + (d.numero||'') + '</div>' +
+          '</div>' +
+          '<div class="tr2-psec">' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Demandeur</div><div class="tr2-pval">' + (d.nomDemandeur||'-') + '</div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Division</div><div class="tr2-pval">' + (d.division||'-') + '</div></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Subdivision</div><div class="tr2-pval">' + (d.subdivision||'-') + '</div></div>' +
+              '<div class="tr2-pcell"></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Matricule</div><div class="tr2-pval">' + (d.matricule||'-') + '</div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Marque</div><div class="tr2-pval">' + (d.marque||'-') + '</div></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Date demande</div><div class="tr2-pval">' + formatDate(d.dateDemande) + '</div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Index km</div><div class="tr2-pval">' + km + ' km</div></div>' +
+            '</div>' +
+            '<div class="tr2-prow">' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Statut</div><div class="tr2-pval"><span class="tr2-pst" style="background:' + statutColor + '22;color:' + statutColor + '">' + statutLabel + '</span></div></div>' +
+              '<div class="tr2-pcell"><div class="tr2-plbl">Date création</div><div class="tr2-pval">' + formatDate(d.dateCreation) + '</div></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="tr2-pnat"><div class="l">Nature de l\'intervention</div><div class="v">' + (d.natureIntervention||'-') + '</div></div>' +
+          (d.commentaire ? '<div class="tr2-pcom"><div class="tr2-plbl">Commentaire</div><div style="font-size:13px;margin-top:4px">' + d.commentaire + '</div></div>' : '') +
+          '<div class="tr2-pfoot">Imprimé le ' + dateImpression + ' — Parc Auto DRT Sfax — Tunisie Telecom</div>' +
+        '</div></body></html>';
+
+      // Wrapper pour pouvoir fermer
+      var wrap = document.createElement('div');
+      wrap.id = 'tr2-iframe-wrap';
+      wrap.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;';
+      wrap.appendChild(iframe);
+      document.body.appendChild(wrap);
+
+      // Nettoyer le div caché
+      var f = document.getElementById('tr2-print-frame');
+      if (f) f.parentNode.removeChild(f);
+    }
+    // FIN BLOC ADDITIF — Impression
+
+    function changeStatut(id, newStatut, comment) {
+      var data = getData();
+      if (!data) return;
+      var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
+      if (!d) return;
+      d.statut      = newStatut;
+      d.commentaire = comment || d.commentaire || '';
+      d.dateTraitement = new Date().toISOString();
+      saveData();
+      renderAdminTab();
+
+      // Toast
+      var msg = newStatut === 'VALIDÉE' ? '✅ Demande validée' : '❌ Demande rejetée';
+      if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
+        window.parcAuto.showToast(msg, newStatut === 'VALIDÉE' ? 'success' : 'error');
+      }
+    }
+
+    // ── Export Excel ────────────────────────────────────────
+    function exportExcel() {
+      var data = getData();
+      var demandes = (data && data.demandesTravaux) ? data.demandesTravaux : [];
+      if (!demandes.length) {
+        if (window.parcAuto && typeof window.parcAuto.showToast === 'function')
+          window.parcAuto.showToast('Aucune demande à exporter', 'error');
+        return;
+      }
+
+      // Construction CSV avec BOM UTF-8
+      var bom = '\uFEFF';
+      var header = ['N°','Date demande','Demandeur','Division','Subdivision','Matricule','Marque','Index km','Nature intervention','Statut','Commentaire','Date création','Date traitement'];
+      var rows = demandes.slice().reverse().map(function(d) {
+        return [
+          d.numero||'',
+          d.dateDemande||'',
+          d.nomDemandeur||'',
+          d.division||'',
+          d.subdivision||'',
+          d.matricule||'',
+          d.marque||'',
+          d.indexKm||'',
+          '"' + (d.natureIntervention||'').replace(/"/g,'""') + '"',
+          d.statut||'',
+          '"' + (d.commentaire||'').replace(/"/g,'""') + '"',
+          formatDate(d.dateCreation),
+          d.dateTraitement ? formatDate(d.dateTraitement) : ''
+        ].join(';');
+      });
+
+      var csv = bom + header.join(';') + '\n' + rows.join('\n');
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'demandes_travaux_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Patch showTab pour inclure travaux ──────────────────
+    function patchShowTab() {
+      var pa = window.parcAuto;
+      if (!pa) { setTimeout(patchShowTab, 500); return; }
+      var origShowTab = pa.showTab.bind(pa);
+      pa.showTab = function(tabName) {
+        origShowTab(tabName);
+        // Ajouter le titre dans breadcrumb
+        var bc = document.getElementById('breadcrumb-current');
+        if (tabName === 'travaux' && bc) bc.textContent = 'Demandes de Travaux';
+        if (tabName === 'travaux') {
+          var tab = document.getElementById('tab-travaux');
+          if (tab) tab.classList.add('active');
+          renderAdminTab();
+        } else {
+          var tab2 = document.getElementById('tab-travaux');
+          if (tab2) tab2.classList.remove('active');
+        }
+      };
+
+      // Patch renderAll pour mettre à jour le badge
+      var origRenderAll = pa.renderAll.bind(pa);
+      pa.renderAll = function() {
+        origRenderAll();
+        renderStats();
+        if (pa.currentTab === 'travaux') renderTable(_currentFilter, _currentSearch);
+      };
+    }
+
+    // Init
+    injectNavItem();
+    injectTabContent();
+    patchShowTab();
+
+    // Mise à jour badge au démarrage
+    setTimeout(renderStats, 2000);
+  }
+
+  // ── Utilitaires ──────────────────────────────────────────
+  function formatDate(str) {
+    if (!str) return '-';
+    try {
+      var d = new Date(str);
+      if (isNaN(d)) return str;
+      return d.toLocaleDateString('fr-FR');
+    } catch(e) { return str; }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // BLOC ADDITIF — INTERFACE VALIDATEUR (index.html)
+  // Deux mots de passe pour Hamdi / Admin DRT
+  // Accessible via bouton flottant + modale dédiée
+  // ══════════════════════════════════════════════════════════
+  function initValidateurInterface() {
+    // Ne pas injecter si déjà présent
+    if (document.getElementById('tr2v-overlay')) return;
+
+    // ── Bouton flottant ─────────────────────────────────────
+    var openBtn = document.createElement('button');
+    openBtn.id = 'tr2v-open-btn';
+    openBtn.innerHTML = '🛡️ Validateur <span class="badge" id="tr2v-float-badge" style="display:none">0</span>';
+    document.body.appendChild(openBtn);
+
+    // ── Modale principale ───────────────────────────────────
+    var ov = document.createElement('div');
+    ov.id = 'tr2v-overlay';
+    ov.innerHTML = `
+      <div id="tr2v-modal" role="dialog" aria-modal="true" aria-label="Interface Validateur">
+
+        <!-- Écran login -->
+        <div id="tr2v-sc-login">
+          <div class="tr2v-hd">
+            <div><h2>🛡️ Espace Validateur</h2><p>Parc Auto DRT Sfax — Accès restreint</p></div>
+            <button class="tr2v-x" id="tr2v-close-login" aria-label="Fermer">✕</button>
+          </div>
+          <div class="tr2v-bd">
+            <div style="text-align:center;padding:8px 0 20px">
+              <div style="font-size:50px;margin-bottom:10px">🔐</div>
+              <h3 style="color:#1e293b;font-size:16px;font-weight:700;margin:0 0 4px">Accès Chef de Parc</h3>
+              <p style="color:#64748b;font-size:13px;margin:0 0 20px">Entrez votre mot de passe pour accéder à l'interface de validation</p>
+            </div>
+            <div class="tr2-err" id="tr2v-login-err"></div>
+            <div class="tr2-f">
+              <label>Mot de passe <em style="color:#E67E22">*</em></label>
+              <input type="password" id="tr2v-pwd" placeholder="••••••••••••" autocomplete="current-password">
+            </div>
+            <button class="tr2-btn tr2-btn-primary" id="tr2v-login-btn" style="margin-top:8px">🔓 Accéder</button>
+          </div>
+        </div>
+
+        <!-- Écran validateur -->
+        <div id="tr2v-sc-main" style="display:none">
+          <div class="tr2v-hd">
+            <div><h2>🛡️ Validation Demandes Travaux</h2><p id="tr2v-hd-sub">Parc Auto DRT Sfax</p></div>
+            <button class="tr2v-x" id="tr2v-close-main" aria-label="Fermer">✕</button>
+          </div>
+          <div class="tr2v-bd">
+            <div class="tr2v-user-bar">
+              <span id="tr2v-user-name">—</span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="tr2v-logout" id="tr2v-export-btn" style="background:#D1FAE5;color:#065f46">📊 Excel</button>
+                <button class="tr2v-logout" id="tr2v-logout-btn">🔒 Déconnecter</button>
+              </div>
+            </div>
+            <div class="tr2v-stats" id="tr2v-stats"></div>
+            <div class="tr2v-filter-bar" id="tr2v-filter-bar">
+              <button class="tr2v-fb active" data-vf="TOUS">Toutes</button>
+              <button class="tr2v-fb" data-vf="EN ATTENTE">⏳ En attente</button>
+              <button class="tr2v-fb" data-vf="VALIDÉE">✅ Validées</button>
+              <button class="tr2v-fb" data-vf="REJETÉE">❌ Rejetées</button>
+            </div>
+            <div id="tr2v-list"></div>
+          </div>
+        </div>
+
+      </div>`;
+    document.body.appendChild(ov);
+
+    // ── Helpers écran ────────────────────────────────────────
+    function vScreen(n) {
+      document.getElementById('tr2v-sc-login').style.display = n === 'login' ? '' : 'none';
+      document.getElementById('tr2v-sc-main').style.display  = n === 'main'  ? '' : 'none';
+    }
+
+    function closeModal() {
+      document.getElementById('tr2v-overlay').classList.remove('open');
+    }
+
+    // ── Ouvrir ───────────────────────────────────────────────
+    openBtn.addEventListener('click', function() {
+      document.getElementById('tr2v-overlay').classList.add('open');
+      var sess = getValidSess();
+      if (sess) {
+        document.getElementById('tr2v-user-name').textContent = '👤 ' + sess.nom;
+        document.getElementById('tr2v-hd-sub').textContent = 'Connecté : ' + sess.nom;
+        vScreen('main');
+        renderValidList(_vFilter);
+        renderValidStats();
+      } else {
+        vScreen('login');
+        document.getElementById('tr2v-pwd').value = '';
+        document.getElementById('tr2v-login-err').classList.remove('show');
+        setTimeout(function(){ document.getElementById('tr2v-pwd').focus(); }, 100);
+      }
+    });
+
+    // ── Fermer ───────────────────────────────────────────────
+    document.getElementById('tr2v-close-login').addEventListener('click', closeModal);
+    document.getElementById('tr2v-close-main').addEventListener('click', closeModal);
+    document.getElementById('tr2v-overlay').addEventListener('click', function(e) {
+      if (e.target.id === 'tr2v-overlay') closeModal();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('tr2v-overlay').classList.contains('open'))
+        closeModal();
+    });
+
+    // ── Login validateur ─────────────────────────────────────
+    function doValidLogin() {
+      var pwd = document.getElementById('tr2v-pwd').value.trim();
+      var err = document.getElementById('tr2v-login-err');
+      var nom = VALIDATEUR_USERS[pwd];
+      if (nom) {
+        setValidSess(nom);
+        err.classList.remove('show');
+        document.getElementById('tr2v-user-name').textContent = '👤 ' + nom;
+        document.getElementById('tr2v-hd-sub').textContent = 'Connecté : ' + nom;
+        vScreen('main');
+        renderValidList(_vFilter);
+        renderValidStats();
+      } else {
+        err.textContent = 'Mot de passe incorrect.';
+        err.classList.add('show');
+        document.getElementById('tr2v-pwd').value = '';
+        setTimeout(function(){ document.getElementById('tr2v-pwd').focus(); }, 50);
+      }
+    }
+    document.getElementById('tr2v-login-btn').addEventListener('click', doValidLogin);
+    document.getElementById('tr2v-pwd').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') doValidLogin();
+    });
+
+    // ── Déconnexion ──────────────────────────────────────────
+    document.getElementById('tr2v-logout-btn').addEventListener('click', function() {
+      delValidSess();
+      vScreen('login');
+      document.getElementById('tr2v-pwd').value = '';
+    });
+
+    // ── Export Excel validateur ──────────────────────────────
+    document.getElementById('tr2v-export-btn').addEventListener('click', function() {
+      var data = getData();
+      var demandes = (data && data.demandesTravaux) ? data.demandesTravaux : [];
+      if (!demandes.length) {
+        if (window.parcAuto && typeof window.parcAuto.showToast === 'function')
+          window.parcAuto.showToast('Aucune demande à exporter', 'error');
+        return;
+      }
+      var bom = '\uFEFF';
+      var header = ['N°','Date demande','Demandeur','Division','Subdivision','Matricule','Marque','Index km','Nature intervention','Statut','Motif rejet/commentaire','Validé par','Date création','Date traitement'];
+      var rows = demandes.slice().reverse().map(function(d) {
+        return [
+          d.numero||'',
+          d.dateDemande||'',
+          d.nomDemandeur||'',
+          d.division||'',
+          d.subdivision||'',
+          d.matricule||'',
+          d.marque||'',
+          d.indexKm||'',
+          '"' + (d.natureIntervention||'').replace(/"/g,'""') + '"',
+          d.statut||'',
+          '"' + (d.commentaire||'').replace(/"/g,'""') + '"',
+          d.validePar||'',
+          formatDate(d.dateCreation),
+          d.dateTraitement ? formatDate(d.dateTraitement) : ''
+        ].join(';');
+      });
+      var csv = bom + header.join(';') + '\n' + rows.join('\n');
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'validation_travaux_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ── Filtres ──────────────────────────────────────────────
+    var _vFilter = 'EN ATTENTE'; // par défaut : en attente
+    document.getElementById('tr2v-filter-bar').querySelectorAll('.tr2v-fb').forEach(function(btn) {
+      // Activer "En attente" par défaut
+      if (btn.dataset.vf === 'EN ATTENTE') btn.classList.add('active');
+      else btn.classList.remove('active');
+      btn.addEventListener('click', function() {
+        document.getElementById('tr2v-filter-bar').querySelectorAll('.tr2v-fb')
+          .forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        _vFilter = btn.dataset.vf;
+        renderValidList(_vFilter);
+      });
+    });
+
+    // ── Stats ────────────────────────────────────────────────
+    function renderValidStats() {
+      var data = getData();
+      var demandes = (data && data.demandesTravaux) ? data.demandesTravaux : [];
+      var total   = demandes.length;
+      var pending = demandes.filter(function(d){ return d.statut === 'EN ATTENTE'; }).length;
+      var valid   = demandes.filter(function(d){ return d.statut === 'VALIDÉE'; }).length;
+      var reject  = demandes.filter(function(d){ return d.statut === 'REJETÉE'; }).length;
+
+      document.getElementById('tr2v-stats').innerHTML =
+        '<div class="tr2v-stat total"><div class="n">' + total   + '</div><div class="l">Total</div></div>' +
+        '<div class="tr2v-stat pending"><div class="n">' + pending + '</div><div class="l">En attente</div></div>' +
+        '<div class="tr2v-stat valid"><div class="n">' + valid   + '</div><div class="l">Validées</div></div>' +
+        '<div class="tr2v-stat reject"><div class="n">' + reject  + '</div><div class="l">Rejetées</div></div>';
+
+      // Badge bouton flottant
+      var badge = document.getElementById('tr2v-float-badge');
+      if (badge) {
+        badge.style.display = pending > 0 ? '' : 'none';
+        badge.textContent = pending;
+      }
+    }
+
+    // ── Liste des demandes ───────────────────────────────────
+    function renderValidList(filter) {
+      var data = getData();
+      var demandes = (data && data.demandesTravaux) ? data.demandesTravaux.slice().reverse() : [];
+      var flt = filter || 'TOUS';
+      if (flt !== 'TOUS') {
+        demandes = demandes.filter(function(d){ return d.statut === flt; });
+      }
+
+      var list = document.getElementById('tr2v-list');
+      if (!demandes.length) {
+        list.innerHTML = '<div class="tr2v-empty">📭 Aucune demande' + (flt !== 'TOUS' ? ' dans cette catégorie' : '') + '</div>';
+        return;
+      }
+
+      list.innerHTML = demandes.map(function(d) {
+        var isPending = d.statut === 'EN ATTENTE';
+        var badgeHtml = isPending
+          ? '<span class="tr2v-badge-wait">⏳ En attente</span>'
+          : d.statut === 'VALIDÉE'
+            ? '<span class="tr2v-badge-ok">✅ Validée</span>'
+            : '<span class="tr2v-badge-ko">❌ Rejetée</span>';
+
+        var actionsHtml = isPending
+          ? '<div class="tr2v-reject-wrap" id="rw-' + d.id + '" style="display:none">' +
+              '<label>Motif de rejet (optionnel)</label>' +
+              '<textarea class="tr2v-reject-txt" id="rtxt-' + d.id + '" placeholder="Précisez le motif…"></textarea>' +
+              '<button class="tr2v-btn-ko" style="margin-top:8px;width:100%" id="rconf-' + d.id + '" data-id="' + d.id + '">❌ Confirmer le rejet</button>' +
+            '</div>' +
+            '<div class="tr2v-actions">' +
+              '<button class="tr2v-btn-ok" data-id="' + d.id + '" id="vok-' + d.id + '">✅ Valider</button>' +
+              '<button class="tr2v-btn-ko" data-id="' + d.id + '" id="vko-' + d.id + '" style="background:#f1f5f9;color:#374151">❌ Rejeter</button>' +
+            '</div>'
+          : '<div class="tr2v-treated">' +
+              (d.commentaire ? '💬 ' + d.commentaire : (d.statut === 'VALIDÉE' ? '✅ Demande validée' : '❌ Demande rejetée')) +
+              (d.dateTraitement ? ' — le ' + formatDate(d.dateTraitement) : '') +
+            '</div>';
+
+        return '<div class="tr2v-card" id="card-' + d.id + '">' +
+          '<div class="tr2v-card-hd">' +
+            '<span class="tr2v-card-num">' + (d.numero||'—') + '</span>' +
+            badgeHtml +
+            '<span class="tr2v-card-date">' + formatDate(d.dateDemande) + '</span>' +
+          '</div>' +
+          '<div class="tr2v-card-body">' +
+            '<div class="tr2v-card-row">' +
+              '<div><div class="tr2v-lbl">Demandeur</div><div class="tr2v-val">' + (d.nomDemandeur||'—') + '</div></div>' +
+              '<div><div class="tr2v-lbl">Division</div><div class="tr2v-val">' + (d.division||'—') + '</div></div>' +
+            '</div>' +
+            '<div class="tr2v-card-row">' +
+              '<div><div class="tr2v-lbl">Matricule</div><div class="tr2v-val">' + (d.matricule||'—') + '</div></div>' +
+              '<div><div class="tr2v-lbl">Marque / Km</div><div class="tr2v-val">' + (d.marque||'—') + (d.indexKm ? ' — ' + d.indexKm + ' km' : '') + '</div></div>' +
+            '</div>' +
+            '<div class="tr2v-nat"><div class="l">Nature de l\'intervention</div><div class="v">' + (d.natureIntervention||'—') + '</div></div>' +
+          '</div>' +
+          actionsHtml +
+        '</div>';
+      }).join('');
+
+      // Attacher les événements
+      demandes.forEach(function(d) {
+        if (d.statut !== 'EN ATTENTE') return;
+
+        // Valider
+        var btnOk = document.getElementById('vok-' + d.id);
+        if (btnOk) btnOk.addEventListener('click', function() {
+          validaterAction(d.id, 'VALIDÉE', '');
+        });
+
+        // Rejeter — afficher textarea
+        var btnKo = document.getElementById('vko-' + d.id);
+        if (btnKo) btnKo.addEventListener('click', function() {
+          var rw = document.getElementById('rw-' + d.id);
+          if (rw) { rw.style.display = rw.style.display === 'none' ? '' : 'none'; }
+          if (btnOk) { btnOk.disabled = rw.style.display !== 'none'; }
+        });
+
+        // Confirmer rejet
+        var btnConf = document.getElementById('rconf-' + d.id);
+        if (btnConf) btnConf.addEventListener('click', function() {
+          var motif = (document.getElementById('rtxt-' + d.id) || {}).value || '';
+          validaterAction(d.id, 'REJETÉE', motif);
+        });
+      });
+    }
+
+    // ── Action valider / rejeter ─────────────────────────────
+    function validaterAction(id, newStatut, comment) {
+      var data = getData();
+      if (!data) return;
+      var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
+      if (!d) return;
+      d.statut           = newStatut;
+      d.commentaire      = comment || d.commentaire || '';
+      d.dateTraitement   = new Date().toISOString();
+      var sess = getValidSess();
+      d.validePar        = sess ? sess.nom : 'Validateur';
+      saveData();
+
+      if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
+        window.parcAuto.showToast(
+          newStatut === 'VALIDÉE' ? '✅ Demande ' + (d.numero||'') + ' validée' : '❌ Demande ' + (d.numero||'') + ' rejetée',
+          newStatut === 'VALIDÉE' ? 'success' : 'error'
+        );
+      }
+      renderValidList(_vFilter);
+      renderValidStats();
+    }
+
+    // ── Mise à jour badge au démarrage ───────────────────────
+    setTimeout(renderValidStats, 2500);
+
+    // Rafraîchir badge quand les données changent
+    var origSaveData = window.parcAuto && window.parcAuto.saveData;
+    // On observe les mises à jour via un polling léger
+    setInterval(function() {
+      if (document.getElementById('tr2v-overlay').classList.contains('open')) {
+        var sess = getValidSess();
+        if (sess) renderValidStats();
+      } else {
+        renderValidStats();
+      }
+    }, 8000);
+  }
+  // FIN BLOC ADDITIF — INTERFACE VALIDATEUR
+
+  // ══════════════════════════════════════════════════════════
+  // INIT — détecter le contexte (admin ou user)
+  // ══════════════════════════════════════════════════════════
+  function init() {
+    var isAdmin = !!document.querySelector('.nav-item[data-nav]')
+               || window.location.href.includes('admin');
+
+    if (isAdmin) {
+      initAdminTab();
+    }
+
+    // Formulaire utilisateur (index.html) — bouton déjà dans index.html
+    if (document.getElementById('tr2-overlay') === null) {
+      initUserForm();
+    }
+
+    // Interface validateur (index.html uniquement)
+    if (!isAdmin) {
+      initValidateurInterface();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+/* FIN BLOC ADDITIF — demande_travaux_v2.js */
