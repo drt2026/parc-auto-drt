@@ -1052,25 +1052,35 @@
 
     // ── Action valider/rejeter depuis l'écran notif ──────────
     function notifValidaterAction(id, newStatut, comment, nom) {
-      var data = getData();
-      if (!data) return;
-      var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
-      if (!d) return;
-      d.statut         = newStatut;
-      d.commentaire    = comment || d.commentaire || '';
-      d.dateTraitement = new Date().toISOString();
-      var sess = getValidSess ? getValidSess() : null;
-      d.validePar      = sess ? sess.nom : 'Validateur';
-      d.valideParTitre = sess ? getTitreValidateur(sess.nom) : '';
-      saveData();
-      _notifSelected = null;
-      if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
-        window.parcAuto.showToast(
-          newStatut === 'VALIDÉE' ? '✅ Demande ' + (d.numero||'') + ' validée' : '❌ Demande ' + (d.numero||'') + ' rejetée',
-          newStatut === 'VALIDÉE' ? 'success' : 'error'
-        );
+      // BLOC ADDITIF — SYNCHRO : on relit le serveur avant d'écrire la décision,
+      // pour ne pas écraser une demande/réponse arrivée entretemps d'un autre poste.
+      function doAction() {
+        var data = getData();
+        if (!data) return;
+        var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
+        if (!d) return;
+        d.statut         = newStatut;
+        d.commentaire    = comment || d.commentaire || '';
+        d.dateTraitement = new Date().toISOString();
+        var sess = getValidSess ? getValidSess() : null;
+        d.validePar      = sess ? sess.nom : 'Validateur';
+        d.valideParTitre = sess ? getTitreValidateur(sess.nom) : '';
+        saveData();
+        _notifSelected = null;
+        if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
+          window.parcAuto.showToast(
+            newStatut === 'VALIDÉE' ? '✅ Demande ' + (d.numero||'') + ' validée' : '❌ Demande ' + (d.numero||'') + ' rejetée',
+            newStatut === 'VALIDÉE' ? 'success' : 'error'
+          );
+        }
+        renderNotifScreen(nom);
       }
-      renderNotifScreen(nom);
+      if (typeof window._tr2FetchAndInject === 'function') {
+        window._tr2FetchAndInject(doAction);
+      } else {
+        doAction();
+      }
+      // FIN BLOC ADDITIF
     }
 
     // Invalider les anciennes sessions sans nom utilisateur
@@ -1414,32 +1424,45 @@
           }
         }
         // FIN BLOC ADDITIF
-        var num = nextNumero();
-        var demande = {
-          id:                 'dt_' + Date.now(),
-          numero:             num,
-          nomDemandeur:       vals['tr2-nom'],
-          division:           vals['tr2-div'],
-          subdivision:        vals['tr2-subdiv'],
-          matricule:          vals['tr2-mat'],
-          marque:             vals['tr2-marq'],
-          dateDemande:        vals['tr2-date'],
-          indexKm:            vals['tr2-km'],
-          natureIntervention: vals['tr2-nat'],
-          statut:             'EN ATTENTE',
-          dateCreation:       new Date().toISOString(),
-          commentaire:        ''
-        };
-        data.demandesTravaux.push(demande);
-        saveData();
-        bipAlert3('new'); // 🔔 bip × 3 nouvelle demande
-        document.getElementById('tr2-num-ok').textContent = 'N° ' + num;
-        // Afficher l'écran succès puis rediriger vers notif après 2s
-        trScreen('ok');
-        setTimeout(function() {
-          var s = getSess();
-          if (s && s.nom) { renderNotifScreen(s.nom); trScreen('notif'); }
-        }, 2200);
+        // BLOC ADDITIF — SYNCHRO : récupérer les données fraîches du serveur juste avant
+        // d'écrire, pour ne pas écraser une demande/validation faite entretemps par
+        // quelqu'un d'autre (corrige la désynchronisation demandeur ↔ validateur).
+        function doPush() {
+          var freshData = getData() || data;
+          if (!freshData.demandesTravaux) freshData.demandesTravaux = [];
+          var num = nextNumero();
+          var demande = {
+            id:                 'dt_' + Date.now(),
+            numero:             num,
+            nomDemandeur:       vals['tr2-nom'],
+            division:           vals['tr2-div'],
+            subdivision:        vals['tr2-subdiv'],
+            matricule:          vals['tr2-mat'],
+            marque:             vals['tr2-marq'],
+            dateDemande:        vals['tr2-date'],
+            indexKm:            vals['tr2-km'],
+            natureIntervention: vals['tr2-nat'],
+            statut:             'EN ATTENTE',
+            dateCreation:       new Date().toISOString(),
+            commentaire:        ''
+          };
+          freshData.demandesTravaux.push(demande);
+          saveData();
+          bipAlert3('new'); // 🔔 bip × 3 nouvelle demande
+          document.getElementById('tr2-num-ok').textContent = 'N° ' + num;
+          // Afficher l'écran succès puis rediriger vers notif après 2s
+          trScreen('ok');
+          setTimeout(function() {
+            var s = getSess();
+            if (s && s.nom) { renderNotifScreen(s.nom); trScreen('notif'); }
+          }, 2200);
+        }
+        if (typeof window._tr2FetchAndInject === 'function') {
+          window._tr2FetchAndInject(doPush);
+        } else {
+          doPush();
+        }
+        // FIN BLOC ADDITIF
       }
       trySubmit();
     });
@@ -2005,21 +2028,31 @@
     // FIN BLOC ADDITIF — Impression
 
     function changeStatut(id, newStatut, comment) {
-      var data = getData();
-      if (!data) return;
-      var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
-      if (!d) return;
-      d.statut      = newStatut;
-      d.commentaire = comment || d.commentaire || '';
-      d.dateTraitement = new Date().toISOString();
-      saveData();
-      renderAdminTab();
+      // BLOC ADDITIF — SYNCHRO : on relit le serveur avant d'écrire la décision,
+      // pour ne pas écraser une demande arrivée entretemps d'un autre poste.
+      function doAction() {
+        var data = getData();
+        if (!data) return;
+        var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
+        if (!d) return;
+        d.statut      = newStatut;
+        d.commentaire = comment || d.commentaire || '';
+        d.dateTraitement = new Date().toISOString();
+        saveData();
+        renderAdminTab();
 
-      // Toast
-      var msg = newStatut === 'VALIDÉE' ? '✅ Demande validée' : '❌ Demande rejetée';
-      if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
-        window.parcAuto.showToast(msg, newStatut === 'VALIDÉE' ? 'success' : 'error');
+        // Toast
+        var msg = newStatut === 'VALIDÉE' ? '✅ Demande validée' : '❌ Demande rejetée';
+        if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
+          window.parcAuto.showToast(msg, newStatut === 'VALIDÉE' ? 'success' : 'error');
+        }
       }
+      if (typeof window._tr2FetchAndInject === 'function') {
+        window._tr2FetchAndInject(doAction);
+      } else {
+        doAction();
+      }
+      // FIN BLOC ADDITIF
     }
 
     // ── Export Excel ────────────────────────────────────────
@@ -2739,45 +2772,55 @@
 
     // ── Action valider / rejeter ─────────────────────────────
     function validaterAction(id, newStatut, comment) {
-      var data = getData();
-      if (!data) return;
-      var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
-      if (!d) return;
-      d.statut           = newStatut;
-      d.commentaire      = comment || d.commentaire || '';
-      d.dateTraitement   = new Date().toISOString();
-      var sess = getValidSess();
-      d.validePar        = sess ? sess.nom : 'Validateur';
-      d.valideParTitre   = sess ? getTitreValidateur(sess.nom) : '';
-      // BLOC ADDITIF — notifier Chef Garage (reset flag lu)
-      if (newStatut === 'VALIDÉE') { d.cgLu = false; d.cgTraite = false; }
-      // FIN BLOC ADDITIF
-      saveData();
-      bipAlert3('valid'); // 🔔 bip × 3 validation/rejet
+      // BLOC ADDITIF — SYNCHRO : on relit le serveur avant d'écrire la décision,
+      // pour ne pas écraser une demande arrivée entretemps d'un autre poste.
+      function doAction() {
+        var data = getData();
+        if (!data) return;
+        var d = (data.demandesTravaux || []).find(function(x){ return x.id === id; });
+        if (!d) return;
+        d.statut           = newStatut;
+        d.commentaire      = comment || d.commentaire || '';
+        d.dateTraitement   = new Date().toISOString();
+        var sess = getValidSess();
+        d.validePar        = sess ? sess.nom : 'Validateur';
+        d.valideParTitre   = sess ? getTitreValidateur(sess.nom) : '';
+        // BLOC ADDITIF — notifier Chef Garage (reset flag lu)
+        if (newStatut === 'VALIDÉE') { d.cgLu = false; d.cgTraite = false; }
+        // FIN BLOC ADDITIF
+        saveData();
+        bipAlert3('valid'); // 🔔 bip × 3 validation/rejet
 
-      if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
-        window.parcAuto.showToast(
-          newStatut === 'VALIDÉE' ? '✅ Demande ' + (d.numero||'') + ' validée' : '❌ Demande ' + (d.numero||'') + ' rejetée',
-          newStatut === 'VALIDÉE' ? 'success' : 'error'
-        );
-      }
-      renderValidStats();
-      // ✅ Basculer automatiquement vers l'historique après validation/rejet
-      _histFilter = newStatut; // afficher directement le bon filtre
-      vScreen('historique');
-      // Mettre à jour le bouton actif dans la barre de filtre historique
-      document.getElementById('tr2v-hist-filter-bar').querySelectorAll('.tr2v-hist-fb').forEach(function(b){
-        b.classList.toggle('active', b.dataset.hf === _histFilter);
-      });
-      // ✅ Délai pour laisser le DOM se mettre à jour
-      setTimeout(function() {
-        var histScreen = document.getElementById('tr2v-sc-historique');
-        if (histScreen) {
-          histScreen.style.display = 'block';
-          void histScreen.offsetHeight;
+        if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
+          window.parcAuto.showToast(
+            newStatut === 'VALIDÉE' ? '✅ Demande ' + (d.numero||'') + ' validée' : '❌ Demande ' + (d.numero||'') + ' rejetée',
+            newStatut === 'VALIDÉE' ? 'success' : 'error'
+          );
         }
-        renderHistoriqueList(_histFilter);
-      }, 100);
+        renderValidStats();
+        // ✅ Basculer automatiquement vers l'historique après validation/rejet
+        _histFilter = newStatut; // afficher directement le bon filtre
+        vScreen('historique');
+        // Mettre à jour le bouton actif dans la barre de filtre historique
+        document.getElementById('tr2v-hist-filter-bar').querySelectorAll('.tr2v-hist-fb').forEach(function(b){
+          b.classList.toggle('active', b.dataset.hf === _histFilter);
+        });
+        // ✅ Délai pour laisser le DOM se mettre à jour
+        setTimeout(function() {
+          var histScreen = document.getElementById('tr2v-sc-historique');
+          if (histScreen) {
+            histScreen.style.display = 'block';
+            void histScreen.offsetHeight;
+          }
+          renderHistoriqueList(_histFilter);
+        }, 100);
+      }
+      if (typeof window._tr2FetchAndInject === 'function') {
+        window._tr2FetchAndInject(doAction);
+      } else {
+        doAction();
+      }
+      // FIN BLOC ADDITIF
     }
 
     // ── Mise à jour badge au démarrage ───────────────────────
@@ -2787,6 +2830,8 @@
     var _vPollLastCount = -1;
     setInterval(function() {
       try {
+      // BLOC ADDITIF — ne poller / biper que si une session validateur est active sur cet appareil
+      if (!getValidSess()) { _vPollLastCount = -1; return; }
       if (typeof window._tr2FetchAndInject !== 'function') return;
       window._tr2FetchAndInject(function() {
         var data = getData();
@@ -2923,22 +2968,32 @@
 
     document.getElementById('tr2cg-obs-save').addEventListener('click', function() {
       if (!_cgObsCurrentId) return;
-      var data = getData();
-      var dem = (data && data.demandesTravaux || []).find(function(x){ return x.id === _cgObsCurrentId; });
-      if (!dem) return;
+      var idToSave = _cgObsCurrentId;
       var obsVal = (document.getElementById('tr2cg-obs-text') || {}).value || '';
       var repVal = (document.getElementById('tr2cg-rep-text') || {}).value || '';
-      dem.cgObservation = obsVal.trim();
-      dem.cgReponse     = repVal.trim();
-      dem.cgReponsePar  = 'Chef de Parc';
-      dem.cgReponseDate = new Date().toISOString();
-      saveData();
-      closeCGObsModal();
-      renderCGList(_cgFilter);
-      if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
-        window.parcAuto.showToast('✅ Observation et réponse enregistrées', 'success');
+      // BLOC ADDITIF — SYNCHRO : on relit le serveur avant d'écrire la réponse.
+      function doAction() {
+        var data = getData();
+        var dem = (data && data.demandesTravaux || []).find(function(x){ return x.id === idToSave; });
+        if (!dem) return;
+        dem.cgObservation = obsVal.trim();
+        dem.cgReponse     = repVal.trim();
+        dem.cgReponsePar  = 'Chef de Parc';
+        dem.cgReponseDate = new Date().toISOString();
+        saveData();
+        closeCGObsModal();
+        renderCGList(_cgFilter);
+        if (window.parcAuto && typeof window.parcAuto.showToast === 'function') {
+          window.parcAuto.showToast('✅ Observation et réponse enregistrées', 'success');
+        }
+        bipAlert3('valid'); // son confirmation réponse enregistrée
       }
-      bipAlert3('valid'); // son confirmation réponse enregistrée
+      if (typeof window._tr2FetchAndInject === 'function') {
+        window._tr2FetchAndInject(doAction);
+      } else {
+        doAction();
+      }
+      // FIN BLOC ADDITIF
     });
     // FIN BLOC ADDITIF — Modal Observation + Réponse Chef Garage
 
@@ -3069,14 +3124,23 @@
         // FIN BLOC ADDITIF
         var btnDone = document.getElementById('tr2cg-done-' + d.id);
         if (btnDone) btnDone.addEventListener('click', function() {
-          var data2 = getData();
-          var dem = (data2 && data2.demandesTravaux || []).find(function(x){ return x.id === d.id; });
-          if (dem) {
-            dem.cgTraite = !dem.cgTraite;
-            saveData();
-            renderCGList(_cgFilter);
-            renderCGStats();
+          // BLOC ADDITIF — SYNCHRO : on relit le serveur avant de basculer le statut.
+          function doAction() {
+            var data2 = getData();
+            var dem = (data2 && data2.demandesTravaux || []).find(function(x){ return x.id === d.id; });
+            if (dem) {
+              dem.cgTraite = !dem.cgTraite;
+              saveData();
+              renderCGList(_cgFilter);
+              renderCGStats();
+            }
           }
+          if (typeof window._tr2FetchAndInject === 'function') {
+            window._tr2FetchAndInject(doAction);
+          } else {
+            doAction();
+          }
+          // FIN BLOC ADDITIF
         });
       });
     }
@@ -3143,6 +3207,8 @@
     var _cgPollLastNew = -1;
     setInterval(function() {
       try {
+      // BLOC ADDITIF — ne poller / biper que si une session chef garage est active sur cet appareil
+      if (!getCGSess()) { _cgPollLastNew = -1; return; }
       if (typeof window._tr2FetchAndInject !== 'function') return;
       window._tr2FetchAndInject(function() {
         var data = getData();
