@@ -1315,8 +1315,14 @@
 
       if (workerUrl) {
         var sep = workerUrl.includes('?') ? '&' : '?';
-        fetch(workerUrl + sep + '_nc=' + Date.now(), { cache: 'no-store' })
-          .then(function(r) { return r.json(); })
+        // BLOC ADDITIF — Timeout réseau (10s) pour éviter que le bouton reste bloqué
+        // sur "⏳ Chargement…" indéfiniment si la requête ne reçoit jamais de réponse
+        // (cas typique : pare-feu/proxy d'entreprise qui bloque silencieusement la requête)
+        var ctrlR = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var toR = ctrlR ? setTimeout(function() { ctrlR.abort(); }, 10000) : null;
+        fetch(workerUrl + sep + '_nc=' + Date.now(), { cache: 'no-store', signal: ctrlR ? ctrlR.signal : undefined })
+          .then(function(r) { if (toR) clearTimeout(toR); return r.json(); })
+        // FIN BLOC ADDITIF
           .then(function(freshData) {
             if (pa && pa.data && freshData) {
               if (freshData.demandesTravaux) pa.data.demandesTravaux = freshData.demandesTravaux;
@@ -1329,7 +1335,16 @@
             }
             afterRefresh(true);
           })
-          .catch(function() { refreshFromLocalStorage(); });
+          .catch(function() {
+            if (toR) clearTimeout(toR);
+            // BLOC ADDITIF — informer l'utilisateur que le serveur n'a pas répondu
+            // (au lieu de rester bloqué silencieusement) puis basculer sur les données locales
+            if (pa && typeof pa.showToast === 'function') {
+              pa.showToast('⚠️ Serveur injoignable — affichage des données locales', 'error');
+            }
+            // FIN BLOC ADDITIF
+            refreshFromLocalStorage();
+          });
       } else {
         refreshFromLocalStorage();
       }
@@ -2263,8 +2278,15 @@
       if (cb) cb();
     }
     if (workerUrl) {
-      fetch(workerUrl+(workerUrl.includes('?')?'&':'?')+'_nc='+Date.now(),{cache:'no-store'})
-        .then(function(r){return r.json();}).then(inject).catch(fromLS);
+      // BLOC ADDITIF — Timeout réseau : sur certains PC/réseaux (pare-feu, proxy d'entreprise),
+      // la requête peut rester bloquée indéfiniment sans jamais échouer ni réussir.
+      // Sans timeout, l'app attend alors à l'infini (écran figé, bouton Actualiser bloqué).
+      // On force donc un abandon après 10s et on bascule sur les données locales (fromLS).
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var to = ctrl ? setTimeout(function() { ctrl.abort(); }, 10000) : null;
+      fetch(workerUrl+(workerUrl.includes('?')?'&':'?')+'_nc='+Date.now(), { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .then(function(r){ if (to) clearTimeout(to); return r.json(); }).then(inject).catch(function(){ if (to) clearTimeout(to); fromLS(); });
+      // FIN BLOC ADDITIF
     } else { fromLS(); }
   }
   // FIN BLOC ADDITIF — tr2FetchAndInject partagée
@@ -2784,14 +2806,35 @@
     setTimeout(renderValidStats, 2500);
 
     // BLOC ADDITIF — Polling validateur avec fetch Gist + alerte sonore
+    // BLOC ADDITIF — Polling validateur
+    // Principe : on retient l'ensemble des IDs déjà signalés (_vAlertedIds).
+    // Le bip se déclenche (et se répète à chaque cycle) UNIQUEMENT pour les IDs
+    // qui sont EN ATTENTE ET qu'on n'a pas encore vus passer à un statut traité.
+    // Dès qu'une demande est VALIDÉE ou REJETÉE, son ID est retiré de l'ensemble
+    // → plus de bip pour elle. Si 0 demande EN ATTENTE → silence total.
+    var _vAlertedIds = new Set();
     var _vPollLastCount = -1;
     setInterval(function() {
       try {
+      // BLOC ADDITIF — ne poller / biper que si une session validateur est active sur cet appareil
+      if (!getValidSess()) { _vAlertedIds.clear(); return; }
       if (typeof window._tr2FetchAndInject !== 'function') return;
       window._tr2FetchAndInject(function() {
         var data = getData();
-        var pendingCount = (data && data.demandesTravaux||[]).filter(function(d){ return d.statut==='EN ATTENTE'; }).length;
-        if (_vPollLastCount >= 0 && pendingCount > _vPollLastCount) {
+        var all = (data && data.demandesTravaux) || [];
+
+        // Retirer de l'ensemble les demandes qui ne sont plus EN ATTENTE (traitées)
+        _vAlertedIds.forEach(function(id) {
+          var d = all.find(function(x){ return x.id === id; });
+          if (!d || d.statut !== 'EN ATTENTE') _vAlertedIds.delete(id);
+        });
+
+        // Ajouter les nouvelles demandes EN ATTENTE à l'ensemble
+        var pendingIds = all.filter(function(d){ return d.statut === 'EN ATTENTE'; }).map(function(d){ return d.id; });
+        pendingIds.forEach(function(id){ _vAlertedIds.add(id); });
+
+        // Bip seulement s'il reste des demandes non traitées dans l'ensemble
+        if (_vAlertedIds.size > 0) {
           bipAlert3('new');
           var vOverlay = document.getElementById('tr2v-overlay');
           if (vOverlay && vOverlay.classList.contains('open')) {
@@ -2799,7 +2842,7 @@
             if (vSess) renderValidList('EN ATTENTE');
           }
         }
-        _vPollLastCount = pendingCount;
+        _vPollLastCount = _vAlertedIds.size;
         renderValidStats();
       });
       } catch(e) { console.warn('[TR2 poll validateur]', e); }
@@ -3140,14 +3183,33 @@
     });
 
     // ── Polling badge toutes les 10s ─────────────────────────
+    // BLOC ADDITIF — même principe que le validateur : un Set d'IDs non traités.
+    // Bip uniquement pour les demandes VALIDÉE et !cgTraite qu'on connaît déjà.
+    // S'arrête dès que cgTraite passe à true (bouton "🔧 Marquer traité" pressé).
+    // Zéro bip si tout est traité, même s'il reste des demandes dans la liste.
+    var _cgAlertedIds = new Set();
     var _cgPollLastNew = -1;
     setInterval(function() {
       try {
+      // BLOC ADDITIF — ne poller / biper que si une session chef garage est active sur cet appareil
+      if (!getCGSess()) { _cgAlertedIds.clear(); return; }
       if (typeof window._tr2FetchAndInject !== 'function') return;
       window._tr2FetchAndInject(function() {
         var data = getData();
-        var newCount = (data && data.demandesTravaux||[]).filter(function(d){ return d.statut==='VALIDÉE' && !d.cgLu; }).length;
-        if (_cgPollLastNew >= 0 && newCount > _cgPollLastNew) {
+        var all = (data && data.demandesTravaux) || [];
+
+        // Retirer de l'ensemble les demandes devenues traitées
+        _cgAlertedIds.forEach(function(id) {
+          var d = all.find(function(x){ return x.id === id; });
+          if (!d || d.cgTraite) _cgAlertedIds.delete(id);
+        });
+
+        // Ajouter les nouvelles demandes VALIDÉE non traitées
+        all.filter(function(d){ return d.statut === 'VALIDÉE' && !d.cgTraite; })
+           .forEach(function(d){ _cgAlertedIds.add(d.id); });
+
+        var newCount = _cgAlertedIds.size;
+        if (newCount > 0) {
           bipAlert3('new');
           var cgo = document.getElementById('tr2cg-overlay');
           if (cgo && cgo.classList.contains('open')) {
