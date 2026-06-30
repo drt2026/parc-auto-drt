@@ -2412,8 +2412,19 @@
         document.getElementById('tr2v-hd-sub').textContent = 'Connecté : ' + sess.nom;
         _vFilter = 'EN ATTENTE';
         vScreen('main');
+        // Affichage immédiat avec les données déjà en cache (pas d'écran vide pendant le chargement)
         renderValidList(_vFilter);
         renderValidStats();
+        // BLOC ADDITIF — puis aller chercher la version fraîche du serveur tout de suite
+        // (sans attendre jusqu'à 15s pour le prochain cycle de polling), pour éviter le
+        // décalage stats/liste constaté à l'ouverture du panneau.
+        if (typeof window._tr2FetchAndInject === 'function') {
+          window._tr2FetchAndInject(function() {
+            renderValidList(_vFilter);
+            renderValidStats();
+          });
+        }
+        // FIN BLOC ADDITIF
       } else {
         vScreen('login');
         document.getElementById('tr2v-pwd').value = '';
@@ -2448,6 +2459,14 @@
         vScreen('main');
         renderValidList(_vFilter);
         renderValidStats();
+        // BLOC ADDITIF — récupérer la version fraîche du serveur juste après connexion
+        if (typeof window._tr2FetchAndInject === 'function') {
+          window._tr2FetchAndInject(function() {
+            renderValidList(_vFilter);
+            renderValidStats();
+          });
+        }
+        // FIN BLOC ADDITIF
       } else {
         err.textContent = 'Mot de passe incorrect.';
         err.classList.add('show');
@@ -2838,12 +2857,17 @@
         var pendingCount = (data && data.demandesTravaux||[]).filter(function(d){ return d.statut==='EN ATTENTE'; }).length;
         if (_vPollLastCount >= 0 && pendingCount > _vPollLastCount) {
           bipAlert3('new');
-          var vOverlay = document.getElementById('tr2v-overlay');
-          if (vOverlay && vOverlay.classList.contains('open')) {
-            var vSess = getValidSess();
-            if (vSess) renderValidList('EN ATTENTE');
-          }
         }
+        // BLOC ADDITIF — CORRECTION : toujours rafraîchir la liste affichée en même temps
+        // que les stats (avant, la liste ne se mettait à jour QUE si le nombre de demandes
+        // en attente augmentait, ce qui pouvait afficher "0 en attente" dans les compteurs
+        // alors qu'une carte obsolète restait visible dans la liste, ou l'inverse).
+        var vOverlay = document.getElementById('tr2v-overlay');
+        if (vOverlay && vOverlay.classList.contains('open')) {
+          var vSess = getValidSess();
+          if (vSess) renderValidList('EN ATTENTE');
+        }
+        // FIN BLOC ADDITIF
         _vPollLastCount = pendingCount;
         renderValidStats();
       });
@@ -3215,12 +3239,16 @@
         var newCount = (data && data.demandesTravaux||[]).filter(function(d){ return d.statut==='VALIDÉE' && !d.cgLu; }).length;
         if (_cgPollLastNew >= 0 && newCount > _cgPollLastNew) {
           bipAlert3('new');
-          var cgo = document.getElementById('tr2cg-overlay');
-          if (cgo && cgo.classList.contains('open')) {
-            var cgs = getCGSess();
-            if (cgs) renderCGList(_cgFilter);
-          }
         }
+        // BLOC ADDITIF — CORRECTION : toujours rafraîchir la liste affichée en même temps
+        // que les stats, pour éviter une carte obsolète affichée alors que les compteurs
+        // sont à jour (ou l'inverse).
+        var cgo = document.getElementById('tr2cg-overlay');
+        if (cgo && cgo.classList.contains('open')) {
+          var cgs = getCGSess();
+          if (cgs) renderCGList(_cgFilter);
+        }
+        // FIN BLOC ADDITIF
         _cgPollLastNew = newCount;
         renderCGStats();
       });
