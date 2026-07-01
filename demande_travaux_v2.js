@@ -1325,7 +1325,12 @@
 
       if (workerUrl) {
         var sep = workerUrl.includes('?') ? '&' : '?';
-        fetch(workerUrl + sep + '_nc=' + Date.now(), { cache: 'no-store' })
+        // 🔧 FIX SYNC — ajouter le header X-App-Key (obligatoire côté Worker),
+        // sinon le Worker rejette la requête et on retombe sur le localStorage périmé.
+        fetch(workerUrl + sep + '_nc=' + Date.now(), {
+          cache: 'no-store',
+          headers: (typeof APP_KEY !== 'undefined') ? { 'X-App-Key': APP_KEY } : {}
+        })
           .then(function(r) { return r.json(); })
           .then(function(freshData) {
             if (pa && pa.data && freshData) {
@@ -2296,7 +2301,13 @@
       if (cb) cb();
     }
     if (workerUrl) {
-      fetch(workerUrl+(workerUrl.includes('?')?'&':'?')+'_nc='+Date.now(),{cache:'no-store'})
+      // 🔧 FIX SYNC — ajouter le header X-App-Key (obligatoire côté Worker),
+      // sinon le Worker rejette la requête et on retombe silencieusement sur
+      // le localStorage périmé (c'était la cause du blocage "toujours en attente").
+      fetch(workerUrl+(workerUrl.includes('?')?'&':'?')+'_nc='+Date.now(),{
+        cache:'no-store',
+        headers: (typeof APP_KEY !== 'undefined') ? { 'X-App-Key': APP_KEY } : {}
+      })
         .then(function(r){return r.json();}).then(inject).catch(fromLS);
     } else { fromLS(); }
   }
