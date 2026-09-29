@@ -729,7 +729,7 @@
   const TRAVAUX_USER_INFO = {
     'Kais Mejdoub':         { division: 'Division commerciale',            subdivision: 'Commerciale' },
     'Karim Mestiri':        { division: 'Division commerciale',            subdivision: 'Subdivision vente ACTELs' },
-    'Zied Ouledabdallah':   { division: 'DAAF',                            subdivision: 'Division Affaires Financières' },
+    'Zied Ouledabdallah':   { division: 'DAF',                            subdivision: 'Division Affaires Financières' },
     'Hichem Mzid':          { division: 'RH',                              subdivision: 'RH' },
     'Mourad Ammar':         { division: 'Division clientèle',              subdivision: 'Division clientèle' },
     'Zaher Jemni':          { division: 'Division clientèle',              subdivision: 'CSC Sfax Nord' },
@@ -747,7 +747,7 @@
     'Jesser Gharbi':        { division: 'Division clientèle',              subdivision: 'CSC Sfax Nord' },
     'Fethi Ben Salem':      { division: 'Division clientèle',              subdivision: 'CSC Sfax Sud' },
     'Sami Chaari':          { division: 'Division clientèle',              subdivision: 'CSC Sfax Medina' },
-    'Mongia Mekki':         { division: 'DAAF',                            subdivision: 'Division des moyens' },
+    'Mongia ElMekki':         { division: 'DAF',                            subdivision: ' MOYENS GENERAUX' },
     'Nabil Ben Jemaa':      { division: 'DRT Sfax',                        subdivision: 'DRT Sfax' }
   };
   // FIN BLOC ADDITIF
