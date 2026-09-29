@@ -34,7 +34,7 @@
     'JG-2026':  'Jesser Gharbi',
     'FBS-2026': 'Fethi Ben Salem',
     'SC-2026':  'Sami Chaari',
-    'MM-2026':  'Mongia Mekki',
+    'MM-2026':  'Mongia El Mekki',
     'NB-2026':  'Nabil Ben Jemaa'
   };
   // ── Table des véhicules autorisés par utilisateur (mot de passe → matricules) ──
@@ -747,7 +747,7 @@
     'Jesser Gharbi':        { division: 'Division clientèle',              subdivision: 'CSC Sfax Nord' },
     'Fethi Ben Salem':      { division: 'Division clientèle',              subdivision: 'CSC Sfax Sud' },
     'Sami Chaari':          { division: 'Division clientèle',              subdivision: 'CSC Sfax Medina' },
-    'Mongia ElMekki':         { division: 'DAF',                            subdivision: ' MOYENS GENERAUX' },
+    'Mongia El Mekki':         { division: 'DAF',                            subdivision: ' MOYENS GENERAUX' },
     'Nabil Ben Jemaa':      { division: 'DRT Sfax',                        subdivision: 'DRT Sfax' }
   };
   // FIN BLOC ADDITIF
