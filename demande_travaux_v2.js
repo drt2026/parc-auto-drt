@@ -758,12 +758,12 @@
   // ── Table des validateurs (mot de passe → nom complet) ───
   // BLOC ADDITIF — Compte Validateur
   const VALIDATEUR_USERS = {
-    'MM-VALID-2026': 'Mongia Mekki',
+    'MM-VALID-2026': 'Mongia El Mekki',
     'ZO-VALID-2026': 'Zied Ouledabdallah'
   };
   // Titre/fonction de chaque validateur
   const VALIDATEUR_TITRES = {
-    'Mongia Mekki':      'Chef Subdivision Moyens',
+    'Mongia El Mekki':      'Chef Subdivision  MOYENS GENERAUX',
     'Zied Ouledabdallah': 'Chef Division Affaires Financières'
   };
   function getTitreValidateur(nom) {
