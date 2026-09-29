@@ -820,7 +820,7 @@
   // BLOC ADDITIF — Accès réservé "Suivi Index G.Electrogène" (5 personnes autorisées uniquement)
   const GE_USERS = {
     'ZO-2026': 'Zied Ouledabdallah',
-    'MM-2026': 'Mongia Mekki',
+    'MM-2026': 'Mongia El Mekki',
     'SL-2026': 'Sabeur Louhichi',
     'AJ-2026': 'Aref Jarraya',
     'KK-2026': 'Kamel Ksibi'
