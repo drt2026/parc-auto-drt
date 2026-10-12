@@ -820,8 +820,8 @@
   // ── Table des validateurs (mot de passe → nom complet) ───
   // BLOC ADDITIF — Compte Validateur
   const VALIDATEUR_USERS = {
-    'MM-VALID-2026': 'Mongia El Mekki',
-    'ZO-VALID-2026': 'Zied Ouledabdallah'
+    'MM-99418468': 'Mongia El Mekki',
+    'ZO-98212898': 'Zied Ouledabdallah'
   };
   // Titre/fonction de chaque validateur
   const VALIDATEUR_TITRES = {
