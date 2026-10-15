@@ -37,6 +37,7 @@
     'MM-2026':  'Mongia El Mekki',
     'NB-2026':  'Nabil Ben Jemaa',
     'HF-2026':  'Hanen Feki'
+     'ND-2026':  'Nabil Derouich'
   };
   // ── Table des véhicules autorisés par utilisateur (mot de passe → matricules) ──
   const TRAVAUX_USER_VEHICLES = {
@@ -63,6 +64,7 @@
     'MM-2026':  ['17-349212','17-357146','17-371048','17-353430','17-356884'],
     'NB-2026':  ['17-356842'],
     'HF-2026':  ['17-349212']
+     'ND-2026':  ['17-349212']
   };
 
   // ── Résoudre la liste des véhicules selon le nom d'utilisateur ──
