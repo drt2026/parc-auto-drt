@@ -887,7 +887,7 @@
     'Mongia El Mekki':         { division: 'DAF',                            subdivision: ' MOYENS GENERAUX' },
     'Nabil Ben Jemaa':      { division: 'DRT Sfax',                        subdivision: 'DRT Sfax' },
     'Hanen Feki':           { division: 'DAF',                            subdivision: 'Magasin' },
-    'Nabil Derouiche':      { division: 'DAF',                            subdivision: 'Responsable Supply Chain' }
+    'Nabil Derouiche':      { division: 'Supply Chain',                    subdivision: 'Responsable Supply Chain' }
   };
   // FIN BLOC ADDITIF
 
